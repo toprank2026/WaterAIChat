@@ -230,7 +230,8 @@ class BlockBuilder {
     final all = await tools.repo.getStations();
 
     final query = (filter ?? '').trim();
-    final List<Station> matched;
+    List<Station> matched;
+    var effectiveFilter = query;
     if (query.isEmpty) {
       matched = all;
     } else {
@@ -240,6 +241,13 @@ class BlockBuilder {
             _normalize(s.waterBodyAr).contains(q) ||
             _normalize(s.governorateAr).contains(q);
       }).toList();
+      // A filter that matches nothing is almost always noise — the user asked
+      // for "all stations" or the model echoed the whole question / another
+      // language. Fall back to the full fleet instead of an empty list.
+      if (matched.isEmpty) {
+        matched = all;
+        effectiveFilter = '';
+      }
     }
 
     final items = matched
@@ -253,7 +261,7 @@ class BlockBuilder {
             ))
         .toList();
 
-    final title = query.isEmpty ? 'المحطات' : 'محطات $query';
+    final title = effectiveFilter.isEmpty ? 'المحطات' : 'محطات $effectiveFilter';
     return StationListSpec(
       title: title,
       count: matched.length,
