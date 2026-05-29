@@ -6,6 +6,7 @@ import 'package:ma_water/ui/genui_blocks/multi_line_chart_block.dart';
 import 'package:ma_water/ui/genui_blocks/ranked_list_block.dart';
 import 'package:ma_water/ui/genui_blocks/stat_card_block.dart';
 import 'package:ma_water/ui/genui_blocks/station_map_block.dart';
+import 'package:ma_water/ui/genui_blocks/statistics_block.dart';
 import 'package:ma_water/ui/genui_blocks/summary_text_block.dart';
 
 /// The single mapping point from a [BlockSpec] (the AI's structured output)
@@ -33,6 +34,8 @@ class BlockRenderer extends StatelessWidget {
     switch (spec) {
       case StatCardSpec():
         return StatCardBlock(spec: spec, onTap: _stationTap(spec.stationId));
+      case StatisticsSpec():
+        return StatisticsBlock(spec: spec, onTap: onTapStation);
       case LineChartSpec():
         return LineChartBlock(spec: spec);
       case MultiLineChartSpec():

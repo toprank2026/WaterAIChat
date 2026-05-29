@@ -10,21 +10,29 @@ import 'package:ma_water/ui/chat/chat_controller.dart';
 import 'package:ma_water/ui/chat/chat_models.dart';
 import 'package:ma_water/ui/chat/composer_bar.dart';
 import 'package:ma_water/ui/chat/message_bubble.dart';
+import 'package:ma_water/ui/chat/quick_suggestions_bar.dart';
+import 'package:ma_water/ui/chat/welcome_view.dart';
+import 'package:ma_water/ui/genui_blocks/block_spec.dart';
 import 'package:ma_water/ui/genui_blocks/genui_registry.dart';
 import 'package:ma_water/ui/settings/settings_screen.dart';
 import 'package:ma_water/ui/shared/brand_logo.dart';
-import 'package:ma_water/ui/shared/empty_state.dart';
-import 'package:ma_water/ui/shared/loading_skeleton.dart';
+import 'package:ma_water/ui/shared/shimmer.dart';
+import 'package:ma_water/ui/shared/typewriter_text.dart';
 import 'package:ma_water/ui/station_detail/station_detail_screen.dart';
 
-/// The product's home: an Arabic, RTL chat surface.
+/// The product's home: an Arabic, RTL, Gemini-style chat surface.
 ///
-/// Top bar carries the brand mark, a live ("مباشر") indicator, an alerts pill
-/// (badge count from [alertsProvider]) and a settings button. The body is a
-/// reversed, virtualized message list driven by [chatControllerProvider];
-/// assistant blocks render through [GenUiRegistry]. A [ComposerBar] is pinned
-/// to the bottom and is populated from [composerPrefillProvider] when another
-/// screen requests "ask about this station".
+/// A clean white ([AppColors.bg]) canvas with a minimal top bar (brand mark,
+/// live indicator, alerts pill, settings). The empty transcript shows a
+/// [WelcomeView] with a gradient greeting and tappable suggestions; otherwise a
+/// reversed, virtualized message list driven by [chatControllerProvider]. While
+/// the assistant is producing a reply a Gemini-style [GeneratingLabel] over a
+/// shimmering [ChatReplySkeleton] is shown in place of the loading placeholder.
+/// The newest plain-prose reply is revealed once with [TypewriterText] (older
+/// replies render statically). Assistant blocks render through [GenUiRegistry].
+/// A [ComposerBar] is pinned to the bottom and is populated from
+/// [composerPrefillProvider] when another screen requests "ask about this
+/// station".
 class ChatScreen extends ConsumerStatefulWidget {
   const ChatScreen({super.key});
 
@@ -37,6 +45,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   final ScrollController _scrollController = ScrollController();
 
   int _lastMessageCount = 0;
+
+  /// Ids of assistant prose replies whose typewriter reveal has already played,
+  /// so a rebuild (scroll, alert insert, new message) never re-animates them.
+  /// Only the most-recent assistant message is ever a candidate for animation.
+  final Set<String> _animatedMessageIds = <String>{};
 
   @override
   void dispose() {
@@ -93,11 +106,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     });
 
     return Scaffold(
+      backgroundColor: AppColors.bg,
       appBar: _buildAppBar(),
       body: Column(
         children: [
-          Expanded(child: _buildMessageList(messages)),
-          const Divider(height: 1, thickness: 1, color: AppColors.line),
+          Expanded(child: _buildBody(messages)),
+          QuickSuggestionsBar(
+            onSelect: _send,
+            enabled: !chatState.isResponding,
+          ),
+          const SizedBox(height: AppSpacing.xs),
           ComposerBar(
             controller: _composerController,
             onSend: _send,
@@ -109,14 +127,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
-      backgroundColor: AppColors.card,
-      surfaceTintColor: AppColors.card,
+      backgroundColor: AppColors.bg,
+      surfaceTintColor: AppColors.bg,
       elevation: 0,
       scrolledUnderElevation: 0,
       titleSpacing: AppSpacing.md,
-      title: Row(
+      title: const Row(
         mainAxisSize: MainAxisSize.min,
-        children: const [
+        children: [
           BrandLogo(iconSize: AppSpacing.lg),
           SizedBox(width: AppSpacing.sm),
           _LiveIndicator(),
@@ -133,36 +151,42 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         ),
         const SizedBox(width: AppSpacing.xs),
       ],
-      bottom: const PreferredSize(
-        preferredSize: Size.fromHeight(1),
-        child: Divider(height: 1, thickness: 1, color: AppColors.line),
-      ),
     );
   }
 
-  Widget _buildMessageList(List<ChatMessage> messages) {
-    // Only the welcome message present → show the empty state hint.
+  Widget _buildBody(List<ChatMessage> messages) {
+    // Only the seeded welcome message present → show the Gemini welcome state.
     if (messages.length <= 1) {
-      return const _ChatEmptyState();
+      return WelcomeView(onSuggestion: _send);
     }
+
+    // The id eligible for a one-time typewriter reveal: the very last message,
+    // when it is a settled assistant prose reply we haven't animated yet.
+    final ChatMessage newest = messages.last;
+    final String? animateId = (newest.role == MessageRole.assistant &&
+            !newest.isLoading &&
+            newest.block is SummaryTextSpec &&
+            !_animatedMessageIds.contains(newest.id))
+        ? newest.id
+        : null;
 
     return ListView.separated(
       controller: _scrollController,
       reverse: true,
       padding: const EdgeInsetsDirectional.all(AppSpacing.md),
       itemCount: messages.length,
-      separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
+      separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.md),
       itemBuilder: (context, index) {
         // Reversed: index 0 is the newest message.
         final message = messages[messages.length - 1 - index];
-        return _buildRow(message);
+        return _buildRow(message, animate: message.id == animateId);
       },
     );
   }
 
-  Widget _buildRow(ChatMessage message) {
+  Widget _buildRow(ChatMessage message, {bool animate = false}) {
     if (message.isLoading) {
-      return const ChatBubbleSkeleton();
+      return const _GeneratingPlaceholder();
     }
 
     Widget? blockChild;
@@ -171,11 +195,43 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       blockChild = GenUiRegistry.build(block, onTapStation: _openStation);
     }
 
-    return MessageBubble(message: message, child: blockChild);
+    return MessageBubble(
+      message: message,
+      animateText: animate,
+      onTextAnimated: animate
+          ? () => _animatedMessageIds.add(message.id)
+          : null,
+      child: blockChild,
+    );
   }
 }
 
-/// The small green "live" indicator: a pulsing dot beside the "مباشر" label.
+/// The pending-reply placeholder shown in place of a loading assistant message.
+///
+/// A Gemini-style [GeneratingLabel] ("يولّد الإجابة…") sits above a shimmering
+/// [ChatReplySkeleton], both aligned to the start so the column reads correctly
+/// in RTL. Replaces the older plain thinking-indicator spinner.
+class _GeneratingPlaceholder extends StatelessWidget {
+  const _GeneratingPlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: GeneratingLabel(),
+        ),
+        SizedBox(height: AppSpacing.sm),
+        ChatReplySkeleton(),
+      ],
+    );
+  }
+}
+
+/// The small green "live" indicator: a dot beside the "مباشر" label.
 class _LiveIndicator extends StatelessWidget {
   const _LiveIndicator();
 
@@ -256,7 +312,7 @@ class _AlertsPill extends ConsumerWidget {
                     decoration: BoxDecoration(
                       color: AppColors.danger,
                       borderRadius: BorderRadius.circular(AppRadius.pill),
-                      border: Border.all(color: AppColors.card, width: 1.5),
+                      border: Border.all(color: AppColors.bg, width: 1.5),
                     ),
                     alignment: Alignment.center,
                     child: Text(
@@ -273,21 +329,6 @@ class _AlertsPill extends ConsumerWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-/// First-run hint shown when the transcript holds only the welcome message.
-class _ChatEmptyState extends StatelessWidget {
-  const _ChatEmptyState();
-
-  @override
-  Widget build(BuildContext context) {
-    return const EmptyState(
-      icon: Icons.water_drop_outlined,
-      title: 'اسأل عن مستوى الماء',
-      subtitle:
-          'اكتب سؤالك بالعربية — مثل: "كم مستوى الماء في سد الموصل هذا الأسبوع؟"',
     );
   }
 }

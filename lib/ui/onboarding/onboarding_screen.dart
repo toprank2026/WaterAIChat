@@ -6,13 +6,14 @@ import 'package:ma_water/core/design/app_radius.dart';
 import 'package:ma_water/core/design/app_spacing.dart';
 import 'package:ma_water/core/design/app_typography.dart';
 import 'package:ma_water/ui/chat/chat_screen.dart';
-import 'package:ma_water/ui/shared/brand_logo.dart';
+import 'package:ma_water/ui/shared/animated_gradient.dart';
 
 /// First-run explainer for "Mā".
 ///
-/// A single screen that introduces the app with three bullet points, shows a
-/// faux on-device model "download" progress bar (no real download happens in
-/// v1), and offers a gradient "ابدأ" button that opens [ChatScreen].
+/// A clean white screen led by a Gemini-style gradient sparkle header, three
+/// feature bullets, a faux on-device model "download" progress bar (no real
+/// download happens in v1), and an animated-gradient "ابدأ" button that opens
+/// [ChatScreen].
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
 
@@ -66,12 +67,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: AppSpacing.xl),
-              const Center(child: BrandLogo(iconSize: AppSpacing.xl)),
+              const Center(child: _GradientHeader()),
               const SizedBox(height: AppSpacing.xl),
-              Text(
-                'مرحبًا بك في مياه',
-                textAlign: TextAlign.center,
-                style: AppTextStyles.displayMd,
+              Center(
+                child: GradientText(
+                  'مرحبًا بك في مياه',
+                  style: AppTextStyles.displayMd,
+                  gradient: AppColors.geminiGradient,
+                ),
               ),
               const SizedBox(height: AppSpacing.sm),
               Text(
@@ -101,6 +104,31 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               const SizedBox(height: AppSpacing.sm),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The hero header: a Gemini-style gradient sparkle inside a softly tinted,
+/// rounded badge.
+class _GradientHeader extends StatelessWidget {
+  const _GradientHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: AppSpacing.xxl + AppSpacing.lg,
+      height: AppSpacing.xxl + AppSpacing.lg,
+      decoration: BoxDecoration(
+        color: AppColors.mint,
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+      ),
+      child: const Center(
+        child: GradientIcon(
+          icon: Icons.auto_awesome,
+          size: AppSpacing.xl,
+          gradient: AppColors.geminiGradient,
         ),
       ),
     );
@@ -184,7 +212,8 @@ class _DownloadNote extends StatelessWidget {
   }
 }
 
-/// Gradient call-to-action button. Disabled (dimmed) until the model is ready.
+/// Animated-gradient call-to-action button. Disabled (dimmed) until the model
+/// is ready.
 class _StartButton extends StatelessWidget {
   const _StartButton({required this.enabled, required this.onPressed});
 
@@ -193,26 +222,29 @@ class _StartButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final BorderRadius radius = BorderRadius.circular(AppRadius.pill);
     return Opacity(
       opacity: enabled ? 1 : 0.5,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: AppColors.primaryGradient,
-          borderRadius: BorderRadius.circular(AppRadius.pill),
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(AppRadius.pill),
-            onTap: enabled ? onPressed : null,
-            child: Padding(
-              padding: const EdgeInsetsDirectional.symmetric(
-                vertical: AppSpacing.md,
-              ),
-              child: Center(
-                child: Text(
-                  'ابدأ',
-                  style: AppTextStyles.titleLg.copyWith(color: AppColors.card),
+      child: ClipRRect(
+        borderRadius: radius,
+        child: AnimatedGradient(
+          colors: AppColors.geminiColors,
+          borderRadius: radius,
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: radius,
+              onTap: enabled ? onPressed : null,
+              child: Padding(
+                padding: const EdgeInsetsDirectional.symmetric(
+                  vertical: AppSpacing.md,
+                ),
+                child: Center(
+                  child: Text(
+                    'ابدأ',
+                    style:
+                        AppTextStyles.titleLg.copyWith(color: AppColors.card),
+                  ),
                 ),
               ),
             ),

@@ -6,6 +6,8 @@ import 'package:ma_water/core/design/app_colors.dart';
 import 'package:ma_water/core/design/app_radius.dart';
 import 'package:ma_water/core/design/app_spacing.dart';
 import 'package:ma_water/core/design/app_typography.dart';
+import 'package:ma_water/core/utils/arabic_utils.dart';
+import 'package:ma_water/data/models/enums.dart';
 import 'package:ma_water/ui/genui_blocks/block_spec.dart';
 
 /// Renders a [StationMapSpec] as a GenUI card containing an OpenStreetMap
@@ -101,6 +103,7 @@ class _StationMapBlockState extends State<StationMapBlock> {
             height: _mapHeight,
             child: _buildMap(),
           ),
+          const _StatusLegend(),
         ],
       ),
     );
@@ -148,6 +151,10 @@ class _StationMapBlockState extends State<StationMapBlock> {
 }
 
 /// A tappable water-drop pin tinted with a station's status colour.
+///
+/// A soft status-coloured halo sits behind a filled teardrop pin carrying a
+/// white water-drop glyph, so the marker reads clearly against busy map tiles
+/// and its status colour is unmistakable.
 class _StationDropMarker extends StatelessWidget {
   const _StationDropMarker({
     required this.color,
@@ -164,37 +171,104 @@ class _StationDropMarker extends StatelessWidget {
       onTap: onTap,
       child: Stack(
         alignment: Alignment.topCenter,
+        clipBehavior: Clip.none,
         children: [
+          // Soft status-coloured halo for legibility on busy tiles.
+          Positioned(
+            top: 2,
+            child: Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: color.withValues(alpha: 0.16),
+              ),
+            ),
+          ),
+          // White-outlined teardrop filled with the status colour.
           Icon(
             Icons.location_on,
-            size: 40,
+            size: 42,
             color: color,
             shadows: const [
               Shadow(
-                color: Color(0x33000000),
-                blurRadius: 3,
-                offset: Offset(0, 1),
+                color: Color(0x40000000),
+                blurRadius: 4,
+                offset: Offset(0, 2),
               ),
             ],
           ),
+          // White inset disc carrying the water-drop glyph.
           Positioned(
             top: 7,
             child: Container(
-              width: 14,
-              height: 14,
-              decoration: BoxDecoration(
+              width: 16,
+              height: 16,
+              decoration: const BoxDecoration(
                 color: AppColors.card,
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 Icons.water_drop,
-                size: 10,
+                size: 11,
                 color: color,
               ),
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+/// A compact legend mapping the three station statuses to their droplet colour
+/// and Arabic label (طبيعي / تحذير / خطر).
+class _StatusLegend extends StatelessWidget {
+  const _StatusLegend();
+
+  @override
+  Widget build(BuildContext context) {
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Padding(
+        padding: const EdgeInsetsDirectional.fromSTEB(
+          AppSpacing.md,
+          AppSpacing.sm,
+          AppSpacing.md,
+          AppSpacing.md,
+        ),
+        child: Wrap(
+          spacing: AppSpacing.md,
+          runSpacing: AppSpacing.xs,
+          children: const [
+            _LegendItem(status: StationStatus.normal),
+            _LegendItem(status: StationStatus.warning),
+            _LegendItem(status: StationStatus.danger),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LegendItem extends StatelessWidget {
+  const _LegendItem({required this.status});
+
+  final StationStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final Color color = AppColors.statusColor(status);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.water_drop, size: 12, color: color),
+        const SizedBox(width: AppSpacing.xxs),
+        Text(
+          statusLabelAr(status),
+          style: AppTextStyles.caption.copyWith(color: AppColors.slate),
+        ),
+      ],
     );
   }
 }

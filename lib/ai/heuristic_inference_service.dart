@@ -1,3 +1,4 @@
+import 'package:ma_water/ai/block_builder.dart';
 import 'package:ma_water/ai/inference_service.dart';
 import 'package:ma_water/ai/tool_dispatcher.dart';
 import 'package:ma_water/core/utils/arabic_utils.dart';
@@ -51,6 +52,8 @@ class HeuristicInferenceService implements InferenceService {
     switch (intent) {
       case _Intent.compare:
         return _handleCompare(userText);
+      case _Intent.statistics:
+        return _handleStatistics(userText, history);
       case _Intent.history:
         return _handleHistory(userText, history);
       case _Intent.rank:
@@ -78,6 +81,9 @@ class HeuristicInferenceService implements InferenceService {
     if (_containsAny(t, _alertWords)) return _Intent.alerts;
     if (_containsAny(t, _mapWords)) return _Intent.map;
     if (_containsAny(t, _compareWords)) return _Intent.compare;
+    // Statistics must precede rank/history: phrases like "أعلى وأقل" or "متوسط"
+    // share keywords with those intents but the user wants a numeric summary.
+    if (_containsAny(t, _statisticsWords)) return _Intent.statistics;
     if (_containsAny(t, _rankWords)) return _Intent.rank;
     if (_containsAny(t, _historyWords)) return _Intent.history;
     if (_containsAny(t, _currentWords)) return _Intent.currentLevel;
@@ -134,6 +140,41 @@ class HeuristicInferenceService implements InferenceService {
       points: _toPoints(readings),
       dangerHigh: station.dangerHighM,
       dangerLow: station.dangerLowM,
+    );
+  }
+
+  Future<BlockSpec> _handleStatistics(
+      String userText, List<ChatMessage> history) async {
+    final station = await _resolveStationOrLast(userText, history);
+    if (station == null) return _clarifyStationBlock();
+
+    // Honour an explicit time phrase ("آخر سنة", "آخر شهر", "N يوم"); otherwise
+    // summarise over the last 30 days.
+    final window = _statisticsWindowFor(userText);
+    final to = DateTime.now().toUtc();
+    final from = to.subtract(window.duration);
+    final interval = window.duration.inDays >= 30
+        ? ReadingInterval.day
+        : ReadingInterval.hour;
+    final readings = await _tools.getHistory(
+      station.id,
+      from,
+      to,
+      interval: interval,
+    );
+
+    final stats = BlockBuilder.computeStats(station, readings);
+    if (stats == null) {
+      return SummaryTextSpec(
+        text: 'لا تتوفر بيانات كافية لحساب إحصائيات ${station.nameAr} '
+            'خلال ${window.labelAr}.',
+      );
+    }
+
+    return StatisticsSpec(
+      title: 'إحصائيات ${station.nameAr} (${window.labelAr})',
+      stationId: station.id,
+      stats: stats,
     );
   }
 
@@ -306,6 +347,9 @@ class HeuristicInferenceService implements InferenceService {
       if (block is StatCardSpec && block.stationId != null) {
         return block.stationId;
       }
+      if (block is StatisticsSpec && block.stationId != null) {
+        return block.stationId;
+      }
       if (block is LineChartSpec && block.stationId != null) {
         return block.stationId;
       }
@@ -336,6 +380,29 @@ class HeuristicInferenceService implements InferenceService {
       return _HistWindow(Duration(days: count), 'آخر $count يوماً');
     }
     return const _HistWindow(Duration(days: 7), 'آخر 7 أيام');
+  }
+
+  /// Chooses the statistics window from time phrases in [text], defaulting to
+  /// the last 30 days when none is given (a numeric summary is most meaningful
+  /// over a longer span). Explicit year/month/"N يوم" phrases are honoured.
+  _HistWindow _statisticsWindowFor(String text) {
+    final t = _normalize(text);
+    final count = _extractCount(t);
+    if (_containsAny(t, const ['سنه', 'سنة', 'عام', 'سنوات'])) {
+      return const _HistWindow(Duration(days: 365), 'آخر سنة');
+    }
+    if (_containsAny(t, const ['شهر', 'شهور', 'اشهر', 'أشهر'])) {
+      final months = (count != null && count >= 1) ? count : 1;
+      final days = (months * 30).clamp(30, 365);
+      return _HistWindow(
+        Duration(days: days),
+        months <= 1 ? 'آخر شهر' : 'آخر $months أشهر',
+      );
+    }
+    if (count != null && t.contains('يوم')) {
+      return _HistWindow(Duration(days: count), 'آخر $count يوماً');
+    }
+    return const _HistWindow(Duration(days: 30), 'آخر 30 يوماً');
   }
 
   // --------------------------------------------------------------------------
@@ -577,6 +644,24 @@ class HeuristicInferenceService implements InferenceService {
     'أقل',
   ];
 
+  /// Words signalling a request for a numeric summary (min/max/avg/current).
+  /// Checked before [_rankWords]/[_historyWords] because phrases like
+  /// "أعلى وأقل" overlap with the ranking keywords.
+  static const List<String> _statisticsWords = [
+    'احصائيات',
+    'إحصائيات',
+    'احصائية',
+    'إحصائية',
+    'احصاء',
+    'إحصاء',
+    'ملخص',
+    'متوسط',
+    'المعدل',
+    'معدل',
+    'اعلى واقل',
+    'أعلى وأقل',
+  ];
+
   static const List<String> _historyWords = [
     'خلال',
     'اخر',
@@ -681,6 +766,7 @@ class HeuristicInferenceService implements InferenceService {
 /// Heuristic intents the engine can route to.
 enum _Intent {
   currentLevel,
+  statistics,
   history,
   compare,
   rank,

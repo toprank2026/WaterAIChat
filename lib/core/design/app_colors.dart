@@ -37,6 +37,22 @@ class AppColors {
     end: Alignment.bottomRight,
   );
 
+  /// Google-Gemini-style palette, blended with the water brand:
+  /// teal -> aqua -> blue -> purple. Drives the animated gradient kit
+  /// (AnimatedGradient / GradientText / GradientIcon / ThinkingIndicator).
+  static const List<Color> geminiColors = [
+    Color(0xFF0D9AA6),
+    Color(0xFF19BCD1),
+    Color(0xFF4F8CFF),
+    Color(0xFF8A6CFF),
+  ]; // teal->aqua->blue->purple
+
+  static const LinearGradient geminiGradient = LinearGradient(
+    colors: geminiColors,
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
   /// Foreground status color for a [StationStatus].
   static Color statusColor(StationStatus s) {
     switch (s) {

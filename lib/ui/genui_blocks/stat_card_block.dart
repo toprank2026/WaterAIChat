@@ -6,6 +6,7 @@ import 'package:ma_water/core/design/app_spacing.dart';
 import 'package:ma_water/core/design/app_typography.dart';
 import 'package:ma_water/core/utils/arabic_utils.dart';
 import 'package:ma_water/ui/genui_blocks/block_spec.dart';
+import 'package:ma_water/ui/shared/animated_gradient.dart';
 import 'package:ma_water/ui/shared/status_pill.dart';
 
 /// Generative-UI widget for a [StatCardSpec] — a single headline metric.
@@ -60,59 +61,90 @@ class StatCardBlock extends StatelessWidget {
             border: Border.all(color: AppColors.line),
             boxShadow: _restingShadow,
           ),
-          padding: const EdgeInsetsDirectional.all(AppSpacing.md),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              // Title + status pill row.
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          // Clip so the leading gradient accent strip is rounded with the card.
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            child: IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
+                  // Vertical gemini gradient accent strip on the start (RTL
+                  // right) edge — a subtle brand flourish.
+                  const _AccentStrip(),
                   Expanded(
-                    child: Text(
-                      spec.title,
-                      style: AppTextStyles.titleMd.copyWith(
-                        color: AppColors.slate,
+                    child: Padding(
+                      padding:
+                          const EdgeInsetsDirectional.all(AppSpacing.md),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          // Title + sparkle + status pill row.
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              const Padding(
+                                padding: EdgeInsetsDirectional.only(
+                                  top: 1,
+                                  end: AppSpacing.xxs,
+                                ),
+                                child: GradientIcon(
+                                  icon: Icons.auto_awesome,
+                                  size: 14,
+                                ),
+                              ),
+                              Expanded(
+                                child: Text(
+                                  spec.title,
+                                  style: AppTextStyles.titleMd.copyWith(
+                                    color: AppColors.slate,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: AppSpacing.sm),
+                              StatusPill(status: spec.status),
+                            ],
+                          ),
+                          const SizedBox(height: AppSpacing.sm),
+
+                          // Big metric value + unit.
+                          Row(
+                            textBaseline: TextBaseline.alphabetic,
+                            crossAxisAlignment: CrossAxisAlignment.baseline,
+                            children: <Widget>[
+                              Text(
+                                formatLevel(spec.value),
+                                style: AppTextStyles.metric
+                                    .copyWith(color: statusColor),
+                              ),
+                              if (_hasCustomUnit) ...<Widget>[
+                                const SizedBox(width: AppSpacing.xxs),
+                                Text(
+                                  spec.unit,
+                                  style: AppTextStyles.titleMd.copyWith(
+                                    color: AppColors.slate,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+
+                          // Optional delta line.
+                          if (_deltaText != null) ...<Widget>[
+                            const SizedBox(height: AppSpacing.xxs),
+                            Text(
+                              _deltaText!,
+                              style: AppTextStyles.bodyMd
+                                  .copyWith(color: AppColors.slate),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
                   ),
-                  const SizedBox(width: AppSpacing.sm),
-                  StatusPill(status: spec.status),
                 ],
               ),
-              const SizedBox(height: AppSpacing.sm),
-
-              // Big metric value + unit.
-              Row(
-                textBaseline: TextBaseline.alphabetic,
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                children: <Widget>[
-                  Text(
-                    formatLevel(spec.value),
-                    style: AppTextStyles.metric.copyWith(color: statusColor),
-                  ),
-                  if (_hasCustomUnit) ...<Widget>[
-                    const SizedBox(width: AppSpacing.xxs),
-                    Text(
-                      spec.unit,
-                      style: AppTextStyles.titleMd.copyWith(
-                        color: AppColors.slate,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-
-              // Optional delta line.
-              if (_deltaText != null) ...<Widget>[
-                const SizedBox(height: AppSpacing.xxs),
-                Text(
-                  _deltaText!,
-                  style: AppTextStyles.bodyMd.copyWith(color: AppColors.slate),
-                ),
-              ],
-            ],
+            ),
           ),
         ),
       ),
@@ -132,5 +164,26 @@ class StatCardBlock extends StatelessWidget {
     final String? raw = spec.delta?.trim();
     if (raw == null || raw.isEmpty) return null;
     return raw;
+  }
+}
+
+/// A slim vertical gemini-gradient bar drawn on the leading edge of the card.
+class _AccentStrip extends StatelessWidget {
+  const _AccentStrip();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox(
+      width: 4,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: AppColors.geminiColors,
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+      ),
+    );
   }
 }

@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart' show StateProvider;
 
 import 'package:ma_water/ai/anomaly_service.dart';
+import 'package:ma_water/ai/gemini_inference_service.dart';
 import 'package:ma_water/ai/heuristic_inference_service.dart';
 import 'package:ma_water/ai/inference_service.dart';
 import 'package:ma_water/ai/tool_dispatcher.dart';
+import 'package:ma_water/core/settings/settings_providers.dart';
 import 'package:ma_water/data/models/alert.dart';
 import 'package:ma_water/data/models/station.dart';
 import 'package:ma_water/data/repositories/mock_water_station_repository.dart';
@@ -34,9 +36,26 @@ final toolDispatcherProvider = Provider<ToolDispatcher>((ref) {
   return ToolDispatcher(ref.read(waterStationRepositoryProvider));
 });
 
-/// The active conversational engine. Defaults to the offline heuristic engine.
+/// The active conversational engine.
+///
+/// When a Gemini API key is configured in [settingsControllerProvider] the
+/// cloud [GeminiInferenceService] is used, falling back to the offline
+/// [HeuristicInferenceService] on any error. Without a key the heuristic
+/// engine is used directly. Watching settings means a newly-saved key (or a
+/// cleared one) rebinds the engine immediately.
 final inferenceServiceProvider = Provider<InferenceService>((ref) {
-  return HeuristicInferenceService(ref.read(toolDispatcherProvider));
+  final tools = ref.read(toolDispatcherProvider);
+  final heuristic = HeuristicInferenceService(tools);
+  final settings = ref.watch(settingsControllerProvider);
+  if (settings.hasGeminiKey) {
+    return GeminiInferenceService(
+      tools: tools,
+      apiKey: settings.geminiApiKey!.trim(),
+      model: settings.geminiModel,
+      fallback: heuristic,
+    );
+  }
+  return heuristic;
 });
 
 /// All stations, loaded once from the repository.

@@ -104,6 +104,103 @@ class PromptBuilder {
   List<String> fewShotExamples() => List.unmodifiable(_fewShots);
 
   // --------------------------------------------------------------------------
+  // Gemini engine (function-calling)
+  // --------------------------------------------------------------------------
+
+  /// The Arabic system prompt for the Gemini engine.
+  ///
+  /// Unlike [systemPrompt] (which describes six data tools + JSON block
+  /// schemas for the on-device model), the Gemini path exposes a single
+  /// function — `render_water_ui` — and lets the app fetch the real data. The
+  /// persona therefore emphasises: understanding Iraqi/dialectal Arabic,
+  /// resolving pronouns from prior turns, ALWAYS calling `render_water_ui`,
+  /// NEVER inventing numbers, and picking the best block type.
+  String geminiSystemPrompt() {
+    return '''
+أنت "ماء"، مساعد ذكي لمراقبة مناسيب المياه في العراق (الأنهار والسدود والبحيرات والروافد).
+تساعد المشغّلين والمدراء والفنيين على فهم بيانات منسوب الماء بسرعة وبصرياً.
+
+# القواعد
+- افهم اللهجة العراقية والعربية الدارجة كما تفهم الفصحى (مثل: "شكد"، "شلون"، "وين"، "هسه").
+- استعمل سياق المحادثة السابقة لحلّ الضمائر والإشارات (مثل: "لها"، "نفسها", "هذي المحطة", "وياها") وأرجِعها إلى المحطة المذكورة آخر مرة.
+- في كل ردّ يجب أن تستدعي الدالة render_water_ui؛ لا تُجب بنص حر إلا عند التحية أو طلب التوضيح وعندها مرّر النص في summary_text.
+- لا تخترع أرقاماً أو مناسيب أو إحصاءات أبداً؛ التطبيق هو من يجلب البيانات الحقيقية بناءً على اختيارك. أنت تختار نوع البطاقة وأسماء المحطات والمعاملات فقط.
+- اختر نوع البطاقة الأنسب لسؤال المستخدم:
+  • stat_card: منسوب محطة واحدة الآن.
+  • statistics: ملخص رقمي لمحطة واحدة عبر مدة (الأدنى والأعلى والمتوسط والحالي) — استعمله عند طلب "إحصائيات" أو "متوسط" أو "المعدل" أو "أعلى وأقل" أو "ملخص" لمحطة.
+  • line_chart: تطوّر منسوب محطة واحدة عبر الزمن.
+  • multi_line_chart: مقارنة محطتين أو أكثر.
+  • ranked_list: أعلى/أدنى عدد من المحطات.
+  • station_map: عرض المحطات على الخريطة.
+  • alert_card: التنبيهات والإنذارات النشطة.
+  • summary_text: تحية أو تعريف أو طلب توضيح (ضع النص في summary_text).
+- مرّر أسماء المحطات في station_names كما ذكرها المستخدم (يمكن أن تكون عربية).
+- وحدة المنسوب دائماً بالأمتار ويُرمز لها بـ "م".
+- لأسئلة قدراتك (مثل "ماذا يمكنك أن تفعل" أو "شنو تسوّي") استعمل summary_text واذكر باختصار ما تقدر عليه: منسوب محطة، تاريخ المنسوب، المقارنة، الإحصائيات، أعلى/أدنى المحطات، الخريطة، والتنبيهات.
+- الشبكة تضم نحو 100 محطة موزّعة على نهري دجلة والفرات وشط العرب والسدود الكبرى (الموصل، حديثة، دوكان، دربنديخان...) والبحيرات والروافد (الزاب الكبير والصغير، ديالى، العظيم، الخابور). إذا سُئلت عن عدد المحطات أو أنواعها فأجب عبر summary_text بهذه المعلومة.
+- إذا لم يحدّد المستخدم محطة في سؤال يتطلّبها، اطلب التوضيح عبر summary_text بدل تخمين محطة عشوائية.''';
+  }
+
+  /// The Gemini function declaration for `render_water_ui`.
+  ///
+  /// Returns an OpenAPI-ish schema (object with typed properties + enums) that
+  /// is embedded under `tools[].function_declarations[]` in the request. The
+  /// app reads the returned arguments and fetches real data to build the block.
+  Map<String, dynamic> renderFunctionDeclaration() {
+    return <String, dynamic>{
+      'name': 'render_water_ui',
+      'description':
+          'يعرض بطاقة واجهة مناسبة لسؤال المستخدم عن مناسيب المياه في العراق. '
+              'التطبيق يجلب الأرقام الحقيقية؛ أنت تختار نوع البطاقة ومعاملاتها فقط.',
+      'parameters': <String, dynamic>{
+        'type': 'object',
+        'properties': <String, dynamic>{
+          'block_type': <String, dynamic>{
+            'type': 'string',
+            'description': 'نوع البطاقة المطلوب عرضها.',
+            'enum': <String>[
+              'stat_card',
+              'statistics',
+              'line_chart',
+              'multi_line_chart',
+              'ranked_list',
+              'station_map',
+              'alert_card',
+              'summary_text',
+            ],
+          },
+          'station_names': <String, dynamic>{
+            'type': 'array',
+            'description':
+                'أسماء المحطات المعنية كما ذكرها المستخدم (واحدة لبطاقة منسوب أو مخطط، اثنتان أو أكثر للمقارنة).',
+            'items': <String, dynamic>{'type': 'string'},
+          },
+          'time_range': <String, dynamic>{
+            'type': 'string',
+            'description': 'النطاق الزمني للمخططات التاريخية والمقارنات.',
+            'enum': <String>['day', 'week', 'month', 'year'],
+          },
+          'count': <String, dynamic>{
+            'type': 'integer',
+            'description': 'عدد المحطات في قائمة الترتيب (ranked_list).',
+          },
+          'order': <String, dynamic>{
+            'type': 'string',
+            'description': 'اتجاه الترتيب: الأعلى منسوباً أم الأدنى.',
+            'enum': <String>['highest', 'lowest'],
+          },
+          'summary_text': <String, dynamic>{
+            'type': 'string',
+            'description':
+                'نص عربي يُعرض عند block_type=summary_text (تحية أو تعريف أو طلب توضيح).',
+          },
+        },
+        'required': <String>['block_type'],
+      },
+    };
+  }
+
+  // --------------------------------------------------------------------------
   // Static prompt fragments
   // --------------------------------------------------------------------------
 
@@ -175,6 +272,13 @@ class PromptBuilder {
 // stat_card — منسوب واحد
 { "type": "stat_card", "title": "محطة سد الموصل", "value": 319.84, "unit": "م",
   "delta": "+0.42 م خلال 24 ساعة", "status": "normal", "station_id": "STN-001" }''',
+    '''
+// statistics — ملخص رقمي لمحطة عبر مدة (الأدنى/الأعلى/المتوسط/الحالي)
+{ "type": "statistics", "title": "إحصائيات سد الموصل (آخر 30 يوماً)", "station_id": "STN-001",
+  "stats": [ {"label": "الحالي", "value": 321.2, "unit": "م", "status": "normal"},
+             {"label": "الأعلى", "value": 325.1, "unit": "م"},
+             {"label": "الأدنى", "value": 318.0, "unit": "م"},
+             {"label": "المتوسط", "value": 321.4, "unit": "م"} ] }''',
     '''
 // line_chart — سلسلة زمنية لمحطة
 { "type": "line_chart", "title": "مستوى الماء — سد الموصل (آخر 7 أيام)",

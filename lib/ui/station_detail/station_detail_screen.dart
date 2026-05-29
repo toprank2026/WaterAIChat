@@ -14,6 +14,7 @@ import 'package:ma_water/data/models/station.dart';
 import 'package:ma_water/ui/genui_blocks/block_spec.dart';
 import 'package:ma_water/ui/genui_blocks/line_chart_block.dart';
 import 'package:ma_water/ui/shared/empty_state.dart';
+import 'package:ma_water/ui/shared/shimmer.dart';
 import 'package:ma_water/ui/shared/status_pill.dart';
 
 /// Bundles everything the detail screen needs for a single station so the UI
@@ -82,9 +83,7 @@ class StationDetailScreen extends ConsumerWidget {
           elevation: 0,
         ),
         body: dataAsync.when(
-          loading: () => const Center(
-            child: CircularProgressIndicator(color: AppColors.teal),
-          ),
+          loading: () => const _DetailLoading(),
           error: (_, _) => const EmptyState(
             icon: Icons.cloud_off,
             title: 'تعذّر تحميل بيانات المحطة',
@@ -146,6 +145,36 @@ class _DetailBody extends ConsumerWidget {
           alignment: AlignmentDirectional.bottomCenter,
           child: _AskButtonBar(station: station),
         ),
+      ],
+    );
+  }
+}
+
+/// Loading placeholder shown while the station/history futures resolve.
+///
+/// Mirrors [_DetailBody]'s layout (same [ListView] padding) so content does not
+/// jump on load: a header-card-sized [ShimmerBox] followed by a [ChartSkeleton]
+/// standing in for the 30-day line chart. No CTA bar is shown until a real
+/// station is available to prefill the composer with.
+class _DetailLoading extends StatelessWidget {
+  const _DetailLoading();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsetsDirectional.fromSTEB(
+        AppSpacing.md,
+        AppSpacing.md,
+        AppSpacing.md,
+        AppSpacing.xxl + AppSpacing.xl,
+      ),
+      children: [
+        ShimmerBox(
+          height: 150,
+          radius: BorderRadius.circular(AppRadius.lg),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        const ChartSkeleton(),
       ],
     );
   }

@@ -7,6 +7,7 @@ import 'package:ma_water/ui/genui_blocks/multi_line_chart_block.dart';
 import 'package:ma_water/ui/genui_blocks/ranked_list_block.dart';
 import 'package:ma_water/ui/genui_blocks/stat_card_block.dart';
 import 'package:ma_water/ui/genui_blocks/station_map_block.dart';
+import 'package:ma_water/ui/genui_blocks/statistics_block.dart';
 import 'package:ma_water/ui/genui_blocks/summary_text_block.dart';
 
 /// Single integration seam for Generative UI block rendering.
@@ -18,7 +19,7 @@ import 'package:ma_water/ui/genui_blocks/summary_text_block.dart';
 /// underlying rendering engine) stays localized to this file and
 /// [BlockRenderer], never leaking into the chat list or AI layer.
 ///
-/// All seven block widgets are referenced here so the registry is the
+/// All eight block widgets are referenced here so the registry is the
 /// authoritative list of renderable block types.
 class GenUiRegistry {
   GenUiRegistry._();
@@ -37,10 +38,11 @@ class GenUiRegistry {
 
 /// The complete set of block widgets routed through this registry. Referenced
 /// here purely to document the registry's coverage and keep the imports live:
-/// [StatCardBlock], [LineChartBlock], [MultiLineChartBlock], [RankedListBlock],
-/// [StationMapBlock], [AlertCardBlock], [SummaryTextBlock].
+/// [StatCardBlock], [StatisticsBlock], [LineChartBlock], [MultiLineChartBlock],
+/// [RankedListBlock], [StationMapBlock], [AlertCardBlock], [SummaryTextBlock].
 const List<Type> kRegisteredBlockWidgets = <Type>[
   StatCardBlock,
+  StatisticsBlock,
   LineChartBlock,
   MultiLineChartBlock,
   RankedListBlock,

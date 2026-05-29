@@ -23,7 +23,26 @@ class MultiLineChartBlock extends StatelessWidget {
     AppColors.danger,
   ];
 
+  /// A lighter companion tone per series, used as the second gradient stop so
+  /// each line reads as a distinct, lively two-tone stroke (not a flat colour).
+  static const List<Color> _paletteTint = <Color>[
+    Color(0xFF4F8CFF), // teal -> blue
+    Color(0xFF8A6CFF), // aqua -> purple
+    Color(0xFFF2B45A), // warn -> amber
+    Color(0xFFF2789A), // danger -> rose
+  ];
+
   Color _colorFor(int index) => _palette[index % _palette.length];
+
+  Color _tintFor(int index) => _paletteTint[index % _paletteTint.length];
+
+  /// A left-to-right gradient for series [index], from its base colour into a
+  /// lighter companion tone.
+  LinearGradient _gradientFor(int index) => LinearGradient(
+        colors: <Color>[_colorFor(index), _tintFor(index)],
+        begin: Alignment.centerLeft,
+        end: Alignment.centerRight,
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -52,12 +71,19 @@ class MultiLineChartBlock extends StatelessWidget {
           else ...[
             SizedBox(
               height: 240,
-              child: _buildChart(series),
+              // Light one-shot draw-in: all series grow together from their
+              // first sample to full on first build.
+              child: TweenAnimationBuilder<double>(
+                tween: Tween<double>(begin: 0, end: 1),
+                duration: const Duration(milliseconds: 600),
+                curve: Curves.easeOutCubic,
+                builder: (context, t, _) => _buildChart(series, t),
+              ),
             ),
             const SizedBox(height: AppSpacing.sm),
             _Legend(
               labels: [for (final s in series) s.label],
-              colorFor: _colorFor,
+              gradientFor: _gradientFor,
             ),
           ],
         ],
@@ -65,7 +91,7 @@ class MultiLineChartBlock extends StatelessWidget {
     );
   }
 
-  Widget _buildChart(List<NamedSeries> series) {
+  Widget _buildChart(List<NamedSeries> series, double reveal) {
     // Compute shared axis bounds across all series.
     double? minX, maxX, minY, maxY;
     for (final s in series) {
@@ -94,20 +120,33 @@ class MultiLineChartBlock extends StatelessWidget {
 
     final bars = <LineChartBarData>[];
     for (var i = 0; i < series.length; i++) {
-      final color = _colorFor(i);
+      final allSpots = <FlSpot>[
+        for (final p in series[i].points)
+          FlSpot(p.t.millisecondsSinceEpoch.toDouble(), p.v),
+      ];
       bars.add(
         LineChartBarData(
-          spots: [
-            for (final p in series[i].points)
-              FlSpot(p.t.millisecondsSinceEpoch.toDouble(), p.v),
-          ],
+          spots: _revealedSpots(allSpots, reveal),
           isCurved: true,
           curveSmoothness: 0.25,
-          color: color,
+          // Distinct two-tone gradient stroke per series.
+          gradient: _gradientFor(i),
           barWidth: 2.5,
           isStrokeCapRound: true,
           dotData: const FlDotData(show: false),
-          belowBarData: BarAreaData(show: false),
+          // A faint wash beneath each series ties the line to its colour
+          // without muddying overlapping series.
+          belowBarData: BarAreaData(
+            show: true,
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: <Color>[
+                _colorFor(i).withValues(alpha: 0.12),
+                _colorFor(i).withValues(alpha: 0.0),
+              ],
+            ),
+          ),
         ),
       );
     }
@@ -193,6 +232,26 @@ class MultiLineChartBlock extends StatelessWidget {
     );
   }
 
+  /// Returns the subset of [spots] visible at draw-in progress [t] (0..1),
+  /// interpolating the final partial segment so each series grows smoothly.
+  static List<FlSpot> _revealedSpots(List<FlSpot> spots, double t) {
+    if (t >= 1 || spots.length < 2) return spots;
+    if (t <= 0) return <FlSpot>[spots.first];
+    final segments = spots.length - 1;
+    final scaled = t * segments;
+    final whole = scaled.floor();
+    final frac = scaled - whole;
+    final revealed = <FlSpot>[for (var i = 0; i <= whole; i++) spots[i]];
+    if (whole < segments && frac > 0) {
+      final a = spots[whole];
+      final b = spots[whole + 1];
+      revealed.add(
+        FlSpot(a.x + (b.x - a.x) * frac, a.y + (b.y - a.y) * frac),
+      );
+    }
+    return revealed;
+  }
+
   static String _formatY(double v) {
     if (v == v.roundToDouble()) return v.toInt().toString();
     return v.toStringAsFixed(1);
@@ -207,10 +266,10 @@ class MultiLineChartBlock extends StatelessWidget {
 
 /// Wrapping row of colored legend chips, one per series.
 class _Legend extends StatelessWidget {
-  const _Legend({required this.labels, required this.colorFor});
+  const _Legend({required this.labels, required this.gradientFor});
 
   final List<String> labels;
-  final Color Function(int index) colorFor;
+  final Gradient Function(int index) gradientFor;
 
   @override
   Widget build(BuildContext context) {
@@ -219,16 +278,16 @@ class _Legend extends StatelessWidget {
       runSpacing: AppSpacing.xs,
       children: [
         for (var i = 0; i < labels.length; i++)
-          _LegendChip(color: colorFor(i), label: labels[i]),
+          _LegendChip(gradient: gradientFor(i), label: labels[i]),
       ],
     );
   }
 }
 
 class _LegendChip extends StatelessWidget {
-  const _LegendChip({required this.color, required this.label});
+  const _LegendChip({required this.gradient, required this.label});
 
-  final Color color;
+  final Gradient gradient;
   final String label;
 
   @override
@@ -236,12 +295,13 @@ class _LegendChip extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
+        // A short gradient bar echoes the series' two-tone stroke.
         Container(
-          width: 10,
-          height: 10,
+          width: 14,
+          height: 6,
           decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(AppRadius.sm),
+            gradient: gradient,
+            borderRadius: BorderRadius.circular(AppRadius.pill),
           ),
         ),
         const SizedBox(width: AppSpacing.xs),

@@ -70,6 +70,50 @@ class LineChartBlock extends StatelessWidget {
 
     final bounds = _yBounds(points);
 
+    // Subtle one-shot draw-in: the line and its area fill grow from the first
+    // point to the full series on first build. We interpolate the revealed
+    // spots so the curve "writes itself" left-to-right. A single point can't
+    // be drawn-in meaningfully, so it skips straight to full.
+    if (spots.length < 2) {
+      return _chart(spots, minX, maxX, bounds);
+    }
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 650),
+      curve: Curves.easeOutCubic,
+      builder: (context, t, _) {
+        return _chart(_revealedSpots(spots, t), minX, maxX, bounds);
+      },
+    );
+  }
+
+  /// Returns the subset of [spots] visible at draw-in progress [t] (0..1),
+  /// interpolating the final partial segment so the line grows smoothly rather
+  /// than snapping point-to-point.
+  static List<FlSpot> _revealedSpots(List<FlSpot> spots, double t) {
+    if (t >= 1) return spots;
+    if (t <= 0) return <FlSpot>[spots.first];
+    final segments = spots.length - 1;
+    final scaled = t * segments;
+    final whole = scaled.floor();
+    final frac = scaled - whole;
+    final revealed = <FlSpot>[for (var i = 0; i <= whole; i++) spots[i]];
+    if (whole < segments && frac > 0) {
+      final a = spots[whole];
+      final b = spots[whole + 1];
+      revealed.add(
+        FlSpot(a.x + (b.x - a.x) * frac, a.y + (b.y - a.y) * frac),
+      );
+    }
+    return revealed;
+  }
+
+  Widget _chart(
+    List<FlSpot> spots,
+    double minX,
+    double maxX,
+    _YBounds bounds,
+  ) {
     return LineChart(
       LineChartData(
         minX: minX,
@@ -164,28 +208,44 @@ class LineChartBlock extends StatelessWidget {
             isCurved: true,
             curveSmoothness: 0.25,
             preventCurveOverShooting: true,
-            color: AppColors.teal,
+            // Gemini-tinted stroke: teal flowing into aqua/blue for a lively,
+            // brand-aligned line rather than a flat single colour.
+            gradient: const LinearGradient(
+              colors: <Color>[
+                AppColors.teal,
+                AppColors.aqua,
+                Color(0xFF4F8CFF),
+              ],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+            ),
             barWidth: 3,
             isStrokeCapRound: true,
+            // Only show end dots once the draw-in has revealed the full series,
+            // and only for sparse series so dense charts stay clean.
             dotData: FlDotData(
-              show: spots.length <= 12,
+              show: spec.points.length <= 12 &&
+                  spots.length == spec.points.length,
               getDotPainter: (spot, percent, bar, index) =>
                   FlDotCirclePainter(
                 radius: 3,
                 color: AppColors.card,
                 strokeWidth: 2,
-                strokeColor: AppColors.teal,
+                strokeColor: AppColors.aqua,
               ),
             ),
             belowBarData: BarAreaData(
               show: true,
+              // Faded gemini-palette wash under the curve for depth.
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [
-                  AppColors.teal.withValues(alpha: 0.22),
-                  AppColors.teal.withValues(alpha: 0.02),
+                colors: <Color>[
+                  AppColors.geminiColors[2].withValues(alpha: 0.20),
+                  AppColors.teal.withValues(alpha: 0.12),
+                  AppColors.teal.withValues(alpha: 0.01),
                 ],
+                stops: const <double>[0.0, 0.45, 1.0],
               ),
             ),
           ),
@@ -208,8 +268,10 @@ class LineChartBlock extends StatelessWidget {
           label: HorizontalLineLabel(
             show: true,
             alignment: Alignment.topRight,
-            padding: const EdgeInsetsDirectional.only(
-              end: AppSpacing.xs,
+            // fl_chart casts this to EdgeInsets at paint time, so it must NOT be
+            // EdgeInsetsDirectional (that throws a runtime type-cast error).
+            padding: const EdgeInsets.only(
+              right: AppSpacing.xs,
               bottom: AppSpacing.xxs,
             ),
             style: AppTextStyles.caption.copyWith(color: AppColors.danger),
@@ -229,8 +291,10 @@ class LineChartBlock extends StatelessWidget {
           label: HorizontalLineLabel(
             show: true,
             alignment: Alignment.bottomRight,
-            padding: const EdgeInsetsDirectional.only(
-              end: AppSpacing.xs,
+            // fl_chart casts this to EdgeInsets at paint time, so it must NOT be
+            // EdgeInsetsDirectional (that throws a runtime type-cast error).
+            padding: const EdgeInsets.only(
+              right: AppSpacing.xs,
               top: AppSpacing.xxs,
             ),
             style: AppTextStyles.caption.copyWith(color: AppColors.warn),

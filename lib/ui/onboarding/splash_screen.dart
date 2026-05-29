@@ -6,12 +6,13 @@ import 'package:ma_water/core/design/app_spacing.dart';
 import 'package:ma_water/core/design/app_typography.dart';
 import 'package:ma_water/ui/chat/chat_screen.dart';
 import 'package:ma_water/ui/onboarding/onboarding_screen.dart';
+import 'package:ma_water/ui/shared/animated_gradient.dart';
 
 /// The launch screen for "Mā".
 ///
-/// Shows a full-bleed [AppColors.primaryGradient] background with a centered
-/// white brand lockup and the Arabic tagline, then routes onward after a brief
-/// delay.
+/// Shows a full-bleed, continuously flowing [AnimatedGradient] background (the
+/// Gemini-style [AppColors.geminiColors] palette) with a centered white brand
+/// lockup and the Arabic tagline, then routes onward after a brief delay.
 ///
 /// In v1 the app always proceeds straight to [ChatScreen] for simplicity, but
 /// the [OnboardingScreen] route is kept available (and would be shown on first
@@ -27,18 +28,33 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
   Timer? _timer;
+  late final AnimationController _introController;
+  late final Animation<double> _fade;
+  late final Animation<double> _scale;
 
   @override
   void initState() {
     super.initState();
-    _timer = Timer(const Duration(milliseconds: 1500), _goNext);
+    // A gentle fade + settle for the brand lockup as the screen appears.
+    _introController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    );
+    _fade = CurvedAnimation(parent: _introController, curve: Curves.easeOut);
+    _scale = Tween<double>(begin: 0.92, end: 1).animate(
+      CurvedAnimation(parent: _introController, curve: Curves.easeOutBack),
+    );
+    _introController.forward();
+    _timer = Timer(const Duration(milliseconds: 1800), _goNext);
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _introController.dispose();
     super.dispose();
   }
 
@@ -57,47 +73,52 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: AppColors.primaryGradient,
-        ),
+      body: AnimatedGradient(
+        colors: AppColors.geminiColors,
+        duration: const Duration(seconds: 8),
         child: SizedBox.expand(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // White brand lockup: drop glyph + "مياه" wordmark.
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.center,
+          child: FadeTransition(
+            opacity: _fade,
+            child: ScaleTransition(
+              scale: _scale,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(
-                    Icons.water_drop,
-                    size: 56,
-                    color: AppColors.card,
+                  // White brand lockup: drop glyph + "مياه" wordmark.
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.water_drop,
+                        size: 56,
+                        color: AppColors.card,
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      Text(
+                        'مياه',
+                        style: AppTextStyles.displayLg.copyWith(
+                          color: AppColors.card,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: AppSpacing.sm),
-                  Text(
-                    'مياه',
-                    style: AppTextStyles.displayLg.copyWith(
-                      color: AppColors.card,
+                  const SizedBox(height: AppSpacing.md),
+                  Padding(
+                    padding: const EdgeInsetsDirectional.symmetric(
+                      horizontal: AppSpacing.xl,
+                    ),
+                    child: Text(
+                      'مساعد مستوى المياه في العراق',
+                      textAlign: TextAlign.center,
+                      style: AppTextStyles.bodyLg.copyWith(
+                        color: AppColors.card,
+                      ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: AppSpacing.md),
-              Padding(
-                padding: const EdgeInsetsDirectional.symmetric(
-                  horizontal: AppSpacing.xl,
-                ),
-                child: Text(
-                  'مساعد مستوى المياه في العراق',
-                  textAlign: TextAlign.center,
-                  style: AppTextStyles.bodyLg.copyWith(
-                    color: AppColors.card,
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),

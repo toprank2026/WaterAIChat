@@ -5,12 +5,16 @@ import 'package:ma_water/core/design/app_radius.dart';
 import 'package:ma_water/core/design/app_spacing.dart';
 import 'package:ma_water/core/design/app_typography.dart';
 import 'package:ma_water/core/di/providers.dart';
+import 'package:ma_water/core/settings/settings_providers.dart';
+import 'package:ma_water/ui/shared/animated_gradient.dart';
 
-/// Read-only settings & app-info screen for the "Mā" app.
+/// Settings & app-info screen for the "Mā" app.
 ///
-/// Surfaces the active data source (local Mock vs. remote API), the AI
-/// inference engine in use, and basic "about" metadata. Everything here is
-/// informational — no settings are mutated and no new providers are declared.
+/// Surfaces the active data source (local Mock vs. remote API), an interactive
+/// Google Gemini connection card (API key + model, persisted via
+/// [settingsControllerProvider]), and basic "about" metadata. The data-source
+/// banner is derived from the repository runtime type so no concrete repository
+/// is imported here.
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
@@ -38,13 +42,16 @@ class SettingsScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsetsDirectional.all(AppSpacing.md),
         children: [
+          // Thin Gemini-style gradient accent at the top of the screen.
+          const _GradientAccent(),
+          const SizedBox(height: AppSpacing.lg),
           _SectionLabel(text: 'مصدر البيانات'),
           const SizedBox(height: AppSpacing.xs),
           _DataSourceBanner(isMock: isMock, repoTypeName: repoTypeName),
           const SizedBox(height: AppSpacing.lg),
-          _SectionLabel(text: 'نموذج الذكاء الاصطناعي'),
+          _SectionLabel(text: 'الذكاء الاصطناعي'),
           const SizedBox(height: AppSpacing.xs),
-          const _AiModelCard(),
+          const _GeminiCard(),
           const SizedBox(height: AppSpacing.lg),
           _SectionLabel(text: 'المظهر'),
           const SizedBox(height: AppSpacing.xs),
@@ -55,6 +62,20 @@ class SettingsScreen extends ConsumerWidget {
           const _AboutCard(version: _appVersion),
         ],
       ),
+    );
+  }
+}
+
+/// A thin, continuously flowing Gemini-style gradient bar used as a subtle
+/// header accent at the top of the settings list.
+class _GradientAccent extends StatelessWidget {
+  const _GradientAccent();
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedGradient(
+      borderRadius: BorderRadius.circular(AppRadius.pill),
+      child: const SizedBox(height: AppSpacing.xs, width: double.infinity),
     );
   }
 }
@@ -160,61 +181,326 @@ class _DataSourceBanner extends StatelessWidget {
   }
 }
 
-/// Card describing the active inference engine and the planned Gemma upgrade.
-class _AiModelCard extends StatelessWidget {
-  const _AiModelCard();
+/// Interactive card for connecting the app to Google Gemini.
+///
+/// Bound to [settingsControllerProvider]: lets the user enter/save/clear an
+/// obscured API key, optionally override the model, and shows a live connection
+/// status line. The key is persisted locally (Hive) on the device only.
+class _GeminiCard extends ConsumerStatefulWidget {
+  const _GeminiCard();
+
+  @override
+  ConsumerState<_GeminiCard> createState() => _GeminiCardState();
+}
+
+class _GeminiCardState extends ConsumerState<_GeminiCard> {
+  late final TextEditingController _keyController;
+  late final TextEditingController _modelController;
+  bool _obscured = true;
+
+  @override
+  void initState() {
+    super.initState();
+    final settings = ref.read(settingsControllerProvider);
+    _keyController = TextEditingController(text: settings.geminiApiKey ?? '');
+    _modelController = TextEditingController(text: settings.geminiModel);
+  }
+
+  @override
+  void dispose() {
+    _keyController.dispose();
+    _modelController.dispose();
+    super.dispose();
+  }
+
+  void _saveKey() {
+    final value = _keyController.text.trim();
+    ref.read(settingsControllerProvider.notifier).setGeminiApiKey(value);
+    FocusScope.of(context).unfocus();
+    _showSnack(value.isEmpty ? 'تم مسح المفتاح' : 'تم حفظ المفتاح');
+  }
+
+  void _clearKey() {
+    _keyController.clear();
+    ref.read(settingsControllerProvider.notifier).setGeminiApiKey(null);
+    FocusScope.of(context).unfocus();
+    _showSnack('تم مسح المفتاح');
+  }
+
+  void _saveModel() {
+    final value = _modelController.text.trim();
+    if (value.isEmpty) {
+      // Fall back to the default model rather than persisting an empty value.
+      const fallback = 'gemini-2.0-flash';
+      _modelController.text = fallback;
+      ref.read(settingsControllerProvider.notifier).setGeminiModel(fallback);
+    } else {
+      ref.read(settingsControllerProvider.notifier).setGeminiModel(value);
+    }
+    FocusScope.of(context).unfocus();
+    _showSnack('تم حفظ النموذج');
+  }
+
+  void _showSnack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            message,
+            style: AppTextStyles.bodyMd.copyWith(color: AppColors.card),
+            textAlign: TextAlign.start,
+          ),
+          backgroundColor: AppColors.ink,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final settings = ref.watch(settingsControllerProvider);
+    final bool connected = settings.hasGeminiKey;
+
     return _SettingsCard(
-      child: Column(
-        children: [
-          ListTile(
-            contentPadding: const EdgeInsetsDirectional.symmetric(
-              horizontal: AppSpacing.md,
-              vertical: AppSpacing.xxs,
+      child: Padding(
+        padding: const EdgeInsetsDirectional.all(AppSpacing.md),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header: sparkle + title + status.
+            Row(
+              children: [
+                Container(
+                  width: AppSpacing.xl,
+                  height: AppSpacing.xl,
+                  decoration: BoxDecoration(
+                    color: AppColors.teal.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                  ),
+                  alignment: Alignment.center,
+                  child: const GradientIcon(
+                    icon: Icons.auto_awesome,
+                    size: AppSpacing.md + AppSpacing.xxs,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Google Gemini', style: AppTextStyles.titleMd),
+                      const SizedBox(height: AppSpacing.xxs),
+                      _StatusLine(connected: connected),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            leading: _LeadingIcon(
-              icon: Icons.psychology_rounded,
-              color: AppColors.teal,
-            ),
-            title: Text(
-              'المحرك: استدلالي محلي (Heuristic)',
-              style: AppTextStyles.titleMd,
-            ),
-            subtitle: Padding(
-              padding: const EdgeInsetsDirectional.only(top: AppSpacing.xxs),
-              child: Text(
-                'يعمل التحليل بالكامل على الجهاز دون اتصال بالنماذج السحابية.',
-                style: AppTextStyles.bodyMd.copyWith(color: AppColors.slate),
-              ),
-            ),
-          ),
-          const Divider(height: 1, color: AppColors.line),
-          ListTile(
-            contentPadding: const EdgeInsetsDirectional.symmetric(
-              horizontal: AppSpacing.md,
-              vertical: AppSpacing.xxs,
-            ),
-            leading: _LeadingIcon(
-              icon: Icons.auto_awesome_rounded,
-              color: AppColors.slate,
-            ),
-            title: Text(
-              'نموذج Gemma',
+            const SizedBox(height: AppSpacing.md),
+            const Divider(height: 1, color: AppColors.line),
+            const SizedBox(height: AppSpacing.md),
+
+            // API key field.
+            Text(
+              'مفتاح Gemini API',
               style: AppTextStyles.titleMd.copyWith(color: AppColors.slate),
             ),
-            subtitle: Padding(
-              padding: const EdgeInsetsDirectional.only(top: AppSpacing.xxs),
-              child: Text(
-                'يمكن تفعيل نموذج Gemma لاحقًا لتحسين دقة الإجابات.',
-                style: AppTextStyles.bodyMd.copyWith(color: AppColors.slate),
+            const SizedBox(height: AppSpacing.xs),
+            TextField(
+              controller: _keyController,
+              obscureText: _obscured,
+              autocorrect: false,
+              enableSuggestions: false,
+              textInputAction: TextInputAction.done,
+              style: AppTextStyles.bodyLg,
+              decoration: _fieldDecoration(
+                hint: 'ألصق مفتاح API هنا',
+                suffix: IconButton(
+                  tooltip: _obscured ? 'إظهار' : 'إخفاء',
+                  onPressed: () => setState(() => _obscured = !_obscured),
+                  icon: Icon(
+                    _obscured
+                        ? Icons.visibility_rounded
+                        : Icons.visibility_off_rounded,
+                    color: AppColors.slate,
+                    size: AppSpacing.lg,
+                  ),
+                ),
+              ),
+              onSubmitted: (_) => _saveKey(),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Row(
+              children: [
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: _saveKey,
+                    icon: const Icon(Icons.check_rounded, size: AppSpacing.md),
+                    label: Text('حفظ', style: AppTextStyles.titleMd
+                        .copyWith(color: AppColors.card)),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.teal,
+                      foregroundColor: AppColors.card,
+                      padding: const EdgeInsetsDirectional.symmetric(
+                        vertical: AppSpacing.sm,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: connected ? _clearKey : null,
+                    icon: const Icon(Icons.delete_outline_rounded,
+                        size: AppSpacing.md),
+                    label: Text('مسح', style: AppTextStyles.titleMd
+                        .copyWith(color: AppColors.danger)),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.danger,
+                      side: const BorderSide(color: AppColors.line),
+                      padding: const EdgeInsetsDirectional.symmetric(
+                        vertical: AppSpacing.sm,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: AppSpacing.md),
+            const Divider(height: 1, color: AppColors.line),
+            const SizedBox(height: AppSpacing.md),
+
+            // Optional model override.
+            Text(
+              'النموذج (اختياري)',
+              style: AppTextStyles.titleMd.copyWith(color: AppColors.slate),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            TextField(
+              controller: _modelController,
+              autocorrect: false,
+              enableSuggestions: false,
+              textInputAction: TextInputAction.done,
+              style: AppTextStyles.bodyLg,
+              decoration: _fieldDecoration(
+                hint: 'gemini-2.0-flash',
+                suffix: TextButton(
+                  onPressed: _saveModel,
+                  child: Text(
+                    'حفظ',
+                    style: AppTextStyles.titleMd.copyWith(color: AppColors.teal),
+                  ),
+                ),
+              ),
+              onSubmitted: (_) => _saveModel(),
+            ),
+
+            const SizedBox(height: AppSpacing.md),
+            // Hint: where to get a key + local-only storage.
+            Container(
+              padding: const EdgeInsetsDirectional.all(AppSpacing.sm),
+              decoration: BoxDecoration(
+                color: AppColors.sky,
+                borderRadius: BorderRadius.circular(AppRadius.md),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(
+                    Icons.info_outline_rounded,
+                    color: AppColors.teal,
+                    size: AppSpacing.md + AppSpacing.xxs,
+                  ),
+                  const SizedBox(width: AppSpacing.xs),
+                  Expanded(
+                    child: Text(
+                      'احصل على مفتاح مجاني من Google AI Studio '
+                      '(aistudio.google.com). يُحفظ المفتاح محليًا على هذا '
+                      'الجهاز فقط ولا يُرسل إلى أي خادم آخر.',
+                      style: AppTextStyles.bodyMd
+                          .copyWith(color: AppColors.slate),
+                    ),
+                  ),
+                ],
               ),
             ),
-            trailing: const _SoonBadge(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  InputDecoration _fieldDecoration({required String hint, Widget? suffix}) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: AppTextStyles.bodyMd.copyWith(color: AppColors.slate),
+      isDense: true,
+      filled: true,
+      fillColor: AppColors.bg,
+      suffixIcon: suffix,
+      contentPadding: const EdgeInsetsDirectional.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.sm,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        borderSide: const BorderSide(color: AppColors.line),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        borderSide: const BorderSide(color: AppColors.teal, width: 1.5),
+      ),
+    );
+  }
+}
+
+/// Connection status line with a Gemini sparkle.
+///
+/// Shows a gradient "connected" state when an API key is configured, otherwise
+/// a muted "local engine" state.
+class _StatusLine extends StatelessWidget {
+  const _StatusLine({required this.connected});
+
+  final bool connected;
+
+  @override
+  Widget build(BuildContext context) {
+    if (connected) {
+      return Row(
+        children: [
+          const GradientIcon(icon: Icons.auto_awesome, size: AppSpacing.md),
+          const SizedBox(width: AppSpacing.xxs),
+          GradientText(
+            'متصل بـ Google Gemini',
+            style: AppTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w700),
           ),
         ],
-      ),
+      );
+    }
+    return Row(
+      children: [
+        const Icon(
+          Icons.offline_bolt_rounded,
+          size: AppSpacing.md,
+          color: AppColors.slate,
+        ),
+        const SizedBox(width: AppSpacing.xxs),
+        Flexible(
+          child: Text(
+            'المحرك المحلي (بدون اتصال)',
+            style: AppTextStyles.bodyMd.copyWith(color: AppColors.slate),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -237,7 +523,7 @@ class _ThemeToggleCard extends StatelessWidget {
           color: AppColors.slate,
         ),
         title: Text(
-          'الوضع الداكن',
+          'الوضع الداكن (قريباً)',
           style: AppTextStyles.titleMd.copyWith(color: AppColors.slate),
         ),
         subtitle: Padding(
@@ -341,29 +627,6 @@ class _LeadingIcon extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppRadius.md),
       ),
       child: Icon(icon, size: AppSpacing.md + AppSpacing.xxs, color: color),
-    );
-  }
-}
-
-/// A small "(قريباً)" pill marking not-yet-available features.
-class _SoonBadge extends StatelessWidget {
-  const _SoonBadge();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsetsDirectional.symmetric(
-        horizontal: AppSpacing.xs,
-        vertical: AppSpacing.xxs,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.sky,
-        borderRadius: BorderRadius.circular(AppRadius.pill),
-      ),
-      child: Text(
-        'قريباً',
-        style: AppTextStyles.caption.copyWith(color: AppColors.teal),
-      ),
     );
   }
 }

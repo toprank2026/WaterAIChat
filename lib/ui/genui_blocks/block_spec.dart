@@ -17,6 +17,8 @@ sealed class BlockSpec {
     switch (type) {
       case 'stat_card':
         return StatCardSpec.fromJson(json);
+      case 'statistics':
+        return StatisticsSpec.fromJson(json);
       case 'line_chart':
         return LineChartSpec.fromJson(json);
       case 'multi_line_chart':
@@ -119,6 +121,34 @@ class MapMarker {
   }
 }
 
+/// A single statistic entry for the `statistics` block:
+/// `{"label": str, "value": num, "unit": str, "status": "normal|warning|danger"?}`.
+///
+/// [status] is optional: only some stats (e.g. the current reading) carry a
+/// status colour; aggregate stats like min/max/average usually omit it.
+class StatItem {
+  final String label;
+  final double value;
+  final String unit;
+  final StationStatus? status;
+
+  const StatItem({
+    required this.label,
+    required this.value,
+    required this.unit,
+    this.status,
+  });
+
+  factory StatItem.fromJson(Map<String, dynamic> json) {
+    return StatItem(
+      label: _parseString(json['label']),
+      value: _parseDouble(json['value']),
+      unit: _parseString(json['unit']),
+      status: _parseNullableStationStatus(json['status']),
+    );
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Block subtypes
 // ---------------------------------------------------------------------------
@@ -149,6 +179,36 @@ class StatCardSpec extends BlockSpec {
       delta: _parseNullableString(json['delta']),
       status: _parseStationStatus(json['status']),
       stationId: _parseNullableString(json['station_id']),
+    );
+  }
+}
+
+/// `statistics` — a titled grid of labelled statistics for one station, each
+/// with a value, unit, and optional status colour (e.g. current / max / min /
+/// average over a window).
+class StatisticsSpec extends BlockSpec {
+  final String title;
+  final String? stationId;
+  final List<StatItem> stats;
+
+  const StatisticsSpec({
+    required this.title,
+    this.stationId,
+    required this.stats,
+  });
+
+  factory StatisticsSpec.fromJson(Map<String, dynamic> json) {
+    final raw = json['stats'];
+    final stats = raw is List
+        ? raw
+            .whereType<Map>()
+            .map((e) => StatItem.fromJson(Map<String, dynamic>.from(e)))
+            .toList()
+        : <StatItem>[];
+    return StatisticsSpec(
+      title: _parseString(json['title']),
+      stationId: _parseNullableString(json['station_id']),
+      stats: stats,
     );
   }
 }
@@ -352,6 +412,22 @@ StationStatus _parseStationStatus(Object? value) {
       return StationStatus.danger;
     default:
       return StationStatus.normal;
+  }
+}
+
+/// Like [_parseStationStatus] but returns `null` for missing/unknown values
+/// instead of defaulting to [StationStatus.normal]. Used by [StatItem], whose
+/// `status` field is optional.
+StationStatus? _parseNullableStationStatus(Object? value) {
+  switch (value) {
+    case 'normal':
+      return StationStatus.normal;
+    case 'warning':
+      return StationStatus.warning;
+    case 'danger':
+      return StationStatus.danger;
+    default:
+      return null;
   }
 }
 

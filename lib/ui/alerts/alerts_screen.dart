@@ -8,7 +8,7 @@ import 'package:ma_water/core/utils/arabic_utils.dart';
 import 'package:ma_water/ui/genui_blocks/alert_card_block.dart';
 import 'package:ma_water/ui/genui_blocks/block_spec.dart';
 import 'package:ma_water/ui/shared/empty_state.dart';
-import 'package:ma_water/ui/shared/loading_skeleton.dart';
+import 'package:ma_water/ui/shared/shimmer.dart';
 import 'package:ma_water/ui/station_detail/station_detail_screen.dart';
 
 /// Full-screen list of open anomaly alerts.
@@ -79,47 +79,17 @@ class AlertsScreen extends ConsumerWidget {
   }
 }
 
-/// Loading placeholder: a column of shimmering skeleton bars approximating the
-/// alert cards that are about to appear.
+/// Loading placeholder: a shimmering [ListSkeleton] standing in for the alert
+/// cards that are about to appear, in the same padded scroll region.
 class _AlertsLoading extends StatelessWidget {
   const _AlertsLoading();
 
   @override
   Widget build(BuildContext context) {
-    return ListView.separated(
+    return ListView(
       padding: const EdgeInsetsDirectional.all(AppSpacing.md),
-      itemCount: 5,
-      separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
-      itemBuilder: (_, _) => const _AlertSkeletonCard(),
-    );
-  }
-}
-
-/// A single skeleton card mimicking the [AlertCardBlock] layout.
-class _AlertSkeletonCard extends StatelessWidget {
-  const _AlertSkeletonCard();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SkeletonBar(
-          width: AppSpacing.lg,
-          height: AppSpacing.lg,
-          opacity: 0.6,
-        ),
-        SizedBox(width: AppSpacing.sm),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SkeletonBar(width: 220, height: AppSpacing.md, opacity: 0.6),
-              SizedBox(height: AppSpacing.xs),
-              SkeletonBar(width: 120, height: AppSpacing.sm, opacity: 0.6),
-            ],
-          ),
-        ),
+      children: const [
+        ListSkeleton(),
       ],
     );
   }
