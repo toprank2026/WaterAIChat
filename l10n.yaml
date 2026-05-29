@@ -1,9 +1,0 @@
-# Localization configuration for Mā (مياه).
-#
-# These ARB files document the Arabic copy used across the app. Code
-# generation is NOT wired up in v1 (no synthetic-package output is
-# consumed); the file exists so the strings live in one place and a
-# future `flutter gen-l10n` run stays trivial.
-arb-dir: lib/l10n
-template-arb-file: app_ar.arb
-output-localization-file: app_localizations.dart

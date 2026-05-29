@@ -33,7 +33,7 @@ class HeuristicInferenceService implements InferenceService {
     required String userText,
     required List<ChatMessage> history,
   }) async {
-    final block = await _buildBlock(userText);
+    final block = await _buildBlock(userText, history);
     return ChatMessage(
       id: _newId(),
       role: MessageRole.assistant,
@@ -46,13 +46,13 @@ class HeuristicInferenceService implements InferenceService {
   // Intent routing
   // --------------------------------------------------------------------------
 
-  Future<BlockSpec> _buildBlock(String userText) {
+  Future<BlockSpec> _buildBlock(String userText, List<ChatMessage> history) {
     final intent = _classify(userText);
     switch (intent) {
       case _Intent.compare:
         return _handleCompare(userText);
       case _Intent.history:
-        return _handleHistory(userText);
+        return _handleHistory(userText, history);
       case _Intent.rank:
         return _handleRank(userText);
       case _Intent.map:
@@ -60,7 +60,7 @@ class HeuristicInferenceService implements InferenceService {
       case _Intent.alerts:
         return _handleAlerts();
       case _Intent.currentLevel:
-        return _handleCurrentLevel(userText);
+        return _handleCurrentLevel(userText, history);
       case _Intent.greeting:
         return Future.value(_guidanceBlock());
     }
@@ -92,8 +92,9 @@ class HeuristicInferenceService implements InferenceService {
   // Intent handlers
   // --------------------------------------------------------------------------
 
-  Future<BlockSpec> _handleCurrentLevel(String userText) async {
-    final station = await _resolveSingleStation(userText);
+  Future<BlockSpec> _handleCurrentLevel(
+      String userText, List<ChatMessage> history) async {
+    final station = await _resolveStationOrLast(userText, history);
     if (station == null) return _clarifyStationBlock();
 
     final CurrentLevel level = await _tools.getCurrentLevel(station.id);
@@ -107,21 +108,28 @@ class HeuristicInferenceService implements InferenceService {
     );
   }
 
-  Future<BlockSpec> _handleHistory(String userText) async {
-    final station = await _resolveSingleStation(userText);
+  Future<BlockSpec> _handleHistory(
+      String userText, List<ChatMessage> history) async {
+    final station = await _resolveStationOrLast(userText, history);
     if (station == null) return _clarifyStationBlock();
 
+    final window = _historyWindowFor(userText);
     final to = DateTime.now().toUtc();
-    final from = to.subtract(_historyWindow);
+    final from = to.subtract(window.duration);
+    // Hourly resolution for short windows; daily for a month or longer keeps the
+    // series light and the chart readable.
+    final interval = window.duration.inDays >= 30
+        ? ReadingInterval.day
+        : ReadingInterval.hour;
     final readings = await _tools.getHistory(
       station.id,
       from,
       to,
-      interval: ReadingInterval.hour,
+      interval: interval,
     );
 
     return LineChartSpec(
-      title: 'مستوى الماء — ${station.nameAr} (آخر 7 أيام)',
+      title: 'مستوى الماء — ${station.nameAr} (${window.labelAr})',
       stationId: station.id,
       points: _toPoints(readings),
       dangerHigh: station.dangerHighM,
@@ -272,6 +280,62 @@ class HeuristicInferenceService implements InferenceService {
         matches.where((s) => _normalize(s.nameAr).contains(f)).toList();
     if (containing.length == 1) return containing.first;
     return null;
+  }
+
+  // --------------------------------------------------------------------------
+  // Conversational context
+  // --------------------------------------------------------------------------
+
+  /// Resolves a station from [userText]; if the text names none — e.g. a
+  /// follow-up using a pronoun like "لها"/"نفسها" — falls back to the most
+  /// recently referenced station in the conversation [history].
+  Future<Station?> _resolveStationOrLast(
+      String userText, List<ChatMessage> history) async {
+    final direct = await _resolveSingleStation(userText);
+    if (direct != null) return direct;
+    final lastId = _lastStationIdFromHistory(history);
+    if (lastId == null) return null;
+    return _tools.repo.getStationById(lastId);
+  }
+
+  /// Scans [history] newest-first for the last station id carried by an
+  /// assistant block (stat card, line chart, or alert card).
+  String? _lastStationIdFromHistory(List<ChatMessage> history) {
+    for (final message in history.reversed) {
+      final block = message.block;
+      if (block is StatCardSpec && block.stationId != null) {
+        return block.stationId;
+      }
+      if (block is LineChartSpec && block.stationId != null) {
+        return block.stationId;
+      }
+      if (block is AlertCardSpec && block.stationId != null) {
+        return block.stationId;
+      }
+    }
+    return null;
+  }
+
+  /// Chooses the history window from time phrases in [text]: a year, one or more
+  /// months ("آخر شهر"), an explicit "N يوم", else the default 7 days.
+  _HistWindow _historyWindowFor(String text) {
+    final t = _normalize(text);
+    final count = _extractCount(t);
+    if (_containsAny(t, const ['سنه', 'سنة', 'عام', 'سنوات'])) {
+      return const _HistWindow(Duration(days: 365), 'آخر سنة');
+    }
+    if (_containsAny(t, const ['شهر', 'شهور', 'اشهر', 'أشهر'])) {
+      final months = (count != null && count >= 1) ? count : 1;
+      final days = (months * 30).clamp(30, 365);
+      return _HistWindow(
+        Duration(days: days),
+        months <= 1 ? 'آخر شهر' : 'آخر $months أشهر',
+      );
+    }
+    if (count != null && t.contains('يوم')) {
+      return _HistWindow(Duration(days: count), 'آخر $count يوماً');
+    }
+    return const _HistWindow(Duration(days: 7), 'آخر 7 أيام');
   }
 
   // --------------------------------------------------------------------------
@@ -623,4 +687,12 @@ enum _Intent {
   map,
   alerts,
   greeting,
+}
+
+/// A resolved history window: how far back to fetch, and an Arabic label for
+/// the chart title.
+class _HistWindow {
+  final Duration duration;
+  final String labelAr;
+  const _HistWindow(this.duration, this.labelAr);
 }
