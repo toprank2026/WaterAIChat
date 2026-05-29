@@ -38,8 +38,14 @@ class LineChartBlock extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
+              'منسوب المياه'.toUpperCase(),
+              style: AppTextStyles.eyebrow,
+              textAlign: TextAlign.start,
+            ),
+            const SizedBox(height: AppSpacing.xxs),
+            Text(
               spec.title,
-              style: AppTextStyles.titleMd,
+              style: AppTextStyles.titleLg,
               textAlign: TextAlign.start,
             ),
             const SizedBox(height: AppSpacing.md),
@@ -208,18 +214,10 @@ class LineChartBlock extends StatelessWidget {
             isCurved: true,
             curveSmoothness: 0.25,
             preventCurveOverShooting: true,
-            // Gemini-tinted stroke: teal flowing into aqua/blue for a lively,
-            // brand-aligned line rather than a flat single colour.
-            gradient: const LinearGradient(
-              colors: <Color>[
-                AppColors.teal,
-                AppColors.aqua,
-                Color(0xFF4F8CFF),
-              ],
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-            ),
-            barWidth: 3,
+            // Flat monochrome stroke: a single confident ink line — depth comes
+            // from the hairline grid and the soft fill, not from a gradient.
+            color: AppColors.ink,
+            barWidth: 2,
             isStrokeCapRound: true,
             // Only show end dots once the draw-in has revealed the full series,
             // and only for sparse series so dense charts stay clean.
@@ -229,24 +227,15 @@ class LineChartBlock extends StatelessWidget {
               getDotPainter: (spot, percent, bar, index) =>
                   FlDotCirclePainter(
                 radius: 3,
-                color: AppColors.card,
+                color: AppColors.canvas,
                 strokeWidth: 2,
-                strokeColor: AppColors.aqua,
+                strokeColor: AppColors.ink,
               ),
             ),
             belowBarData: BarAreaData(
               show: true,
-              // Faded gemini-palette wash under the curve for depth.
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: <Color>[
-                  AppColors.geminiColors[2].withValues(alpha: 0.20),
-                  AppColors.teal.withValues(alpha: 0.12),
-                  AppColors.teal.withValues(alpha: 0.01),
-                ],
-                stops: const <double>[0.0, 0.45, 1.0],
-              ),
+              // Flat soft-grey wash under the curve — no gradient, no shadow.
+              color: AppColors.surfaceSoft,
             ),
           ),
         ],

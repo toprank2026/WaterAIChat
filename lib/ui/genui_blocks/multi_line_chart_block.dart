@@ -7,42 +7,39 @@ import 'package:ma_water/core/design/app_typography.dart';
 import 'package:ma_water/ui/genui_blocks/block_spec.dart';
 
 /// GenUI block rendering a [MultiLineChartSpec]: 2–4 labelled time series drawn
-/// on a single axis with an fl_chart line chart, plus a legend row of colored
-/// chips. Each series is assigned a distinct color from a small palette
-/// (teal, aqua, warn, danger).
+/// on a single axis with an fl_chart line chart, plus a flat legend row.
+///
+/// Figma look: a flat white hairline card. The chart is monochrome — the
+/// primary series is solid ink over a single low-alpha pastel (lilac) fill, and
+/// additional series are distinguished by grayscale tone + dash pattern (weight
+/// and rhythm, not hue, carry the difference). The legend mirrors each series
+/// with a small flat swatch + label.
 class MultiLineChartBlock extends StatelessWidget {
   const MultiLineChartBlock({super.key, required this.spec});
 
   final MultiLineChartSpec spec;
 
-  /// Small distinct palette; index wraps if more series than colors arrive.
+  /// Monochrome series tones. Index 0 is full ink; later series step down to
+  /// slate so overlapping lines stay legible without introducing hues.
   static const List<Color> _palette = <Color>[
-    AppColors.teal,
-    AppColors.aqua,
-    AppColors.warn,
-    AppColors.danger,
+    AppColors.ink,
+    AppColors.slate,
+    AppColors.slate,
+    AppColors.ink,
   ];
 
-  /// A lighter companion tone per series, used as the second gradient stop so
-  /// each line reads as a distinct, lively two-tone stroke (not a flat colour).
-  static const List<Color> _paletteTint = <Color>[
-    Color(0xFF4F8CFF), // teal -> blue
-    Color(0xFF8A6CFF), // aqua -> purple
-    Color(0xFFF2B45A), // warn -> amber
-    Color(0xFFF2789A), // danger -> rose
+  /// Dash pattern per series (null = solid). Combined with [_palette] this gives
+  /// four readable, distinct strokes in a strictly monochrome system.
+  static const List<List<int>?> _dashes = <List<int>?>[
+    null, // solid ink
+    null, // solid slate
+    <int>[6, 4], // dashed slate
+    <int>[2, 4], // dotted ink
   ];
 
   Color _colorFor(int index) => _palette[index % _palette.length];
 
-  Color _tintFor(int index) => _paletteTint[index % _paletteTint.length];
-
-  /// A left-to-right gradient for series [index], from its base colour into a
-  /// lighter companion tone.
-  LinearGradient _gradientFor(int index) => LinearGradient(
-        colors: <Color>[_colorFor(index), _tintFor(index)],
-        begin: Alignment.centerLeft,
-        end: Alignment.centerRight,
-      );
+  List<int>? _dashFor(int index) => _dashes[index % _dashes.length];
 
   @override
   Widget build(BuildContext context) {
@@ -54,16 +51,22 @@ class MultiLineChartBlock extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.card,
         borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: AppColors.hairline),
       ),
       padding: const EdgeInsets.all(AppSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
+          // Mono uppercase eyebrow taxonomy label above the title.
+          Text(
+            'MULTI-SERIES',
+            style: AppTextStyles.eyebrow,
+          ),
+          const SizedBox(height: AppSpacing.xxs),
           Text(
             spec.title,
-            style: AppTextStyles.titleMd,
+            style: AppTextStyles.titleLg,
           ),
           const SizedBox(height: AppSpacing.sm),
           if (series.isEmpty)
@@ -80,10 +83,11 @@ class MultiLineChartBlock extends StatelessWidget {
                 builder: (context, t, _) => _buildChart(series, t),
               ),
             ),
-            const SizedBox(height: AppSpacing.sm),
+            const SizedBox(height: AppSpacing.md),
             _Legend(
               labels: [for (final s in series) s.label],
-              gradientFor: _gradientFor,
+              colorFor: _colorFor,
+              dashFor: _dashFor,
             ),
           ],
         ],
@@ -124,28 +128,24 @@ class MultiLineChartBlock extends StatelessWidget {
         for (final p in series[i].points)
           FlSpot(p.t.millisecondsSinceEpoch.toDouble(), p.v),
       ];
+      final dash = _dashFor(i);
       bars.add(
         LineChartBarData(
           spots: _revealedSpots(allSpots, reveal),
           isCurved: true,
           curveSmoothness: 0.25,
-          // Distinct two-tone gradient stroke per series.
-          gradient: _gradientFor(i),
-          barWidth: 2.5,
+          // Flat monochrome stroke; tone + dash distinguish the series.
+          color: _colorFor(i),
+          dashArray: dash,
+          barWidth: i == 0 ? 2.5 : 1.5,
           isStrokeCapRound: true,
           dotData: const FlDotData(show: false),
-          // A faint wash beneath each series ties the line to its colour
-          // without muddying overlapping series.
+          // ONE pastel block: only the primary (ink) series carries a single
+          // low-alpha lilac wash so the lead line reads first; later series
+          // stay clean lines so overlapping data does not muddy.
           belowBarData: BarAreaData(
-            show: true,
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: <Color>[
-                _colorFor(i).withValues(alpha: 0.12),
-                _colorFor(i).withValues(alpha: 0.0),
-              ],
-            ),
+            show: i == 0,
+            color: AppColors.blockLilac.withValues(alpha: 0.22),
           ),
         ),
       );
@@ -163,7 +163,7 @@ class MultiLineChartBlock extends StatelessWidget {
           drawVerticalLine: false,
           horizontalInterval: yInterval == 0 ? null : yInterval,
           getDrawingHorizontalLine: (_) => const FlLine(
-            color: AppColors.line,
+            color: AppColors.hairline,
             strokeWidth: 1,
           ),
         ),
@@ -184,8 +184,9 @@ class MultiLineChartBlock extends StatelessWidget {
                 if (value == meta.min || value == meta.max) {
                   return const SizedBox.shrink();
                 }
+                // Plain EdgeInsets only — fl_chart crashes on directional insets.
                 return Padding(
-                  padding: const EdgeInsetsDirectional.only(end: AppSpacing.xxs),
+                  padding: const EdgeInsets.only(right: AppSpacing.xxs),
                   child: Text(
                     _formatY(value),
                     style: AppTextStyles.caption.copyWith(
@@ -223,7 +224,7 @@ class MultiLineChartBlock extends StatelessWidget {
               for (final s in spots)
                 LineTooltipItem(
                   _formatY(s.y),
-                  AppTextStyles.caption.copyWith(color: AppColors.card),
+                  AppTextStyles.caption.copyWith(color: AppColors.canvas),
                 ),
             ],
           ),
@@ -264,54 +265,123 @@ class MultiLineChartBlock extends StatelessWidget {
   }
 }
 
-/// Wrapping row of colored legend chips, one per series.
+/// Wrapping row of flat legend chips, one per series.
 class _Legend extends StatelessWidget {
-  const _Legend({required this.labels, required this.gradientFor});
+  const _Legend({
+    required this.labels,
+    required this.colorFor,
+    required this.dashFor,
+  });
 
   final List<String> labels;
-  final Gradient Function(int index) gradientFor;
+  final Color Function(int index) colorFor;
+  final List<int>? Function(int index) dashFor;
 
   @override
   Widget build(BuildContext context) {
     return Wrap(
-      spacing: AppSpacing.md,
+      spacing: AppSpacing.xs,
       runSpacing: AppSpacing.xs,
       children: [
         for (var i = 0; i < labels.length; i++)
-          _LegendChip(gradient: gradientFor(i), label: labels[i]),
+          _LegendChip(
+            color: colorFor(i),
+            dash: dashFor(i),
+            label: labels[i],
+          ),
       ],
     );
   }
 }
 
 class _LegendChip extends StatelessWidget {
-  const _LegendChip({required this.gradient, required this.label});
+  const _LegendChip({
+    required this.color,
+    required this.dash,
+    required this.label,
+  });
 
-  final Gradient gradient;
+  final Color color;
+  final List<int>? dash;
   final String label;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // A short gradient bar echoes the series' two-tone stroke.
-        Container(
-          width: 14,
-          height: 6,
-          decoration: BoxDecoration(
-            gradient: gradient,
-            borderRadius: BorderRadius.circular(AppRadius.pill),
+    // Flat white hairline pill with a small monochrome swatch echoing the
+    // series stroke (solid or dashed) — no gradients, no shadow.
+    return Container(
+      padding: const EdgeInsetsDirectional.fromSTEB(
+        AppSpacing.sm,
+        AppSpacing.xxs,
+        AppSpacing.sm,
+        AppSpacing.xxs,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.canvas,
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+        border: Border.all(color: AppColors.hairline),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 16,
+            height: 8,
+            child: CustomPaint(
+              painter: _SwatchPainter(color: color, dash: dash),
+            ),
           ),
-        ),
-        const SizedBox(width: AppSpacing.xs),
-        Text(
-          label,
-          style: AppTextStyles.bodyMd.copyWith(color: AppColors.slate),
-        ),
-      ],
+          const SizedBox(width: AppSpacing.xs),
+          Text(
+            label,
+            style: AppTextStyles.bodyMd.copyWith(color: AppColors.ink),
+          ),
+        ],
+      ),
     );
   }
+}
+
+/// Draws a short horizontal stroke (solid or dashed) matching a series.
+class _SwatchPainter extends CustomPainter {
+  const _SwatchPainter({required this.color, required this.dash});
+
+  final Color color;
+  final List<int>? dash;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+
+    final y = size.height / 2;
+    final d = dash;
+    if (d == null || d.isEmpty) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+      return;
+    }
+    // Walk the dash pattern across the swatch width.
+    var x = 0.0;
+    var di = 0;
+    var draw = true;
+    while (x < size.width) {
+      final len = d[di % d.length].toDouble();
+      final next = (x + len).clamp(0.0, size.width);
+      if (draw) {
+        canvas.drawLine(Offset(x, y), Offset(next, y), paint);
+      }
+      x = next;
+      draw = !draw;
+      di++;
+    }
+  }
+
+  @override
+  bool shouldRepaint(_SwatchPainter old) =>
+      old.color != color || old.dash != dash;
 }
 
 /// Shown when no series carries any points.
@@ -326,7 +396,7 @@ class _EmptyState extends StatelessWidget {
           children: [
             const Icon(
               Icons.show_chart,
-              color: AppColors.slate,
+              color: AppColors.ink,
               size: 32,
             ),
             const SizedBox(height: AppSpacing.xs),

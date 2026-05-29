@@ -8,14 +8,14 @@ import 'package:ma_water/ui/genui_blocks/block_spec.dart';
 import 'package:ma_water/ui/shared/animated_gradient.dart';
 import 'package:ma_water/ui/shared/typewriter_text.dart';
 
-/// A single chat row rendering one [ChatMessage], Google-Gemini style.
+/// A single chat row rendering one [ChatMessage], editorial monochrome style.
 ///
-///  - **User**: a compact bubble filled with [AppColors.geminiGradient] and
-///    white text, aligned to the trailing (end) edge.
-///  - **Assistant**: no bubble chrome — a small gradient sparkle avatar
-///    ([GradientIcon] with [Icons.auto_awesome]) sits at the leading edge, and
-///    the reply text / generative-UI block flows beside it on a clean surface,
-///    giving the airy "document" feel of Gemini answers.
+///  - **User**: a compact solid-ink bubble with white text and a pill-ish
+///    radius, aligned to the trailing (end) edge.
+///  - **Assistant**: a small solid-ink sparkle avatar ([GradientIcon] with
+///    [Icons.auto_awesome], flat under the monochrome kit) sits at the leading
+///    edge, and the reply text / generative-UI block flows beside it on the
+///    clean white canvas, giving an airy editorial "document" feel.
 ///
 /// When [message] carries a Generative-UI [ChatMessage.block], the [child]
 /// (the already-built block widget) is rendered under any text instead of this
@@ -57,7 +57,7 @@ class MessageBubble extends StatelessWidget {
   }
 
   // --------------------------------------------------------------------------
-  // User — gemini-gradient bubble, trailing edge.
+  // User — solid-ink bubble, white text, pill-ish radius, trailing edge.
   // --------------------------------------------------------------------------
 
   Widget _buildUser(BuildContext context) {
@@ -73,7 +73,7 @@ class MessageBubble extends StatelessWidget {
           vertical: AppSpacing.sm,
         ),
         decoration: const BoxDecoration(
-          gradient: AppColors.geminiGradient,
+          color: AppColors.ink,
           borderRadius: BorderRadiusDirectional.only(
             topStart: Radius.circular(AppRadius.lg),
             topEnd: Radius.circular(AppRadius.lg),
@@ -83,7 +83,7 @@ class MessageBubble extends StatelessWidget {
         ),
         child: Text(
           text,
-          style: AppTextStyles.bodyLg.copyWith(color: AppColors.card),
+          style: AppTextStyles.bodyLg.copyWith(color: AppColors.canvas),
         ),
       ),
     );
@@ -117,11 +117,9 @@ class MessageBubble extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (hasText)
-          Text(
-            text,
-            style: AppTextStyles.bodyLg.copyWith(color: AppColors.ink),
-          ),
+        // Plain assistant prose reads as a flat white hairline card so it
+        // matches the static SummaryTextBlock / typewriter chrome.
+        if (hasText) _AssistantTextCard(text: text),
         if (hasText && hasBlock) const SizedBox(height: AppSpacing.sm),
         if (hasBlock) child!,
       ],
@@ -147,7 +145,8 @@ class MessageBubble extends StatelessWidget {
   }
 }
 
-/// The small gradient sparkle that prefixes every assistant message.
+/// The small solid-ink sparkle (flat under the monochrome kit) that prefixes
+/// every assistant message, set in a circular white hairline chip.
 class _SparkleAvatar extends StatelessWidget {
   const _SparkleAvatar();
 
@@ -159,13 +158,39 @@ class _SparkleAvatar extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.card,
         shape: BoxShape.circle,
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: AppColors.hairline),
       ),
       alignment: Alignment.center,
       child: const GradientIcon(
         icon: Icons.auto_awesome,
         size: AppSpacing.md,
         gradient: AppColors.rainbowGradient,
+      ),
+    );
+  }
+}
+
+/// A plain assistant prose reply on a flat white hairline card (radius lg),
+/// matching the static `SummaryTextBlock` / [_TypewriterSummaryCard] chrome so
+/// the bubble reads consistently across the static and streaming paths.
+class _AssistantTextCard extends StatelessWidget {
+  const _AssistantTextCard({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsetsDirectional.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: AppColors.hairline),
+      ),
+      child: Text(
+        text,
+        style: AppTextStyles.bodyLg.copyWith(color: AppColors.ink),
       ),
     );
   }
@@ -189,11 +214,11 @@ class _TypewriterSummaryCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.card,
         borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: AppColors.hairline),
       ),
       child: TypewriterText(
         text,
-        style: AppTextStyles.bodyLg,
+        style: AppTextStyles.bodyLg.copyWith(color: AppColors.ink),
         onComplete: onComplete,
       ),
     );

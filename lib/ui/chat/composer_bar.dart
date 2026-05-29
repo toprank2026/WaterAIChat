@@ -3,16 +3,16 @@ import 'package:ma_water/core/design/app_colors.dart';
 import 'package:ma_water/core/design/app_radius.dart';
 import 'package:ma_water/core/design/app_spacing.dart';
 import 'package:ma_water/core/design/app_typography.dart';
-import 'package:ma_water/ui/shared/animated_gradient.dart';
 
-/// The message-composition bar pinned to the bottom of the chat, Gemini style.
+/// The message-composition bar pinned to the bottom of the chat.
 ///
-/// Layout (RTL): a rounded pill input wrapped in a thin **animated gradient
-/// ring** ([AnimatedGradient]) that subtly flows around the field, a disabled
-/// microphone placeholder (voice is out of scope for v1, PRD §F1), and a
-/// circular send button. When the field holds text the send button becomes a
-/// flowing [AnimatedGradient] circle; otherwise it dims. Submitting happens on
-/// the keyboard action or the send button; empty/whitespace input is ignored.
+/// Layout (RTL), Figma editorial look: a flat white input framed by a 1px
+/// [AppColors.hairline] border with [AppRadius.lg] rounded corners, a disabled
+/// microphone placeholder (voice is out of scope for v1, PRD §F1), and a solid
+/// black circular send button with a white arrow. No shadows, no gradients —
+/// the send disc simply dims when there's nothing to send. Submitting happens
+/// on the keyboard action or the send button; empty/whitespace input is
+/// ignored.
 class ComposerBar extends StatefulWidget {
   const ComposerBar({
     super.key,
@@ -96,7 +96,7 @@ class _ComposerBarState extends State<ComposerBar> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            Expanded(child: _buildInputPill()),
+            Expanded(child: _buildInputField()),
             const SizedBox(width: AppSpacing.xs),
             _SendButton(enabled: canSend, onTap: _submit),
           ],
@@ -105,65 +105,60 @@ class _ComposerBarState extends State<ComposerBar> {
     );
   }
 
-  /// The pill input: a thin animated gradient ring framing a white field.
-  Widget _buildInputPill() {
-    const double ring = 1.5;
-    return AnimatedGradient(
-      borderRadius: BorderRadius.circular(AppRadius.pill),
-      child: Padding(
-        padding: const EdgeInsets.all(ring),
-        child: Container(
-          decoration: BoxDecoration(
-            color: AppColors.card,
-            borderRadius: BorderRadius.circular(AppRadius.pill),
-          ),
-          padding: const EdgeInsetsDirectional.only(
-            start: AppSpacing.md,
-            end: AppSpacing.xs,
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _controller,
-                  textInputAction: TextInputAction.send,
-                  onSubmitted: (_) => _submit(),
-                  minLines: 1,
-                  maxLines: 5,
-                  style: AppTextStyles.bodyLg,
-                  cursorColor: AppColors.teal,
-                  decoration: InputDecoration(
-                    isDense: true,
-                    border: InputBorder.none,
-                    hintText: 'اكتب سؤالك عن مستوى الماء…',
-                    hintStyle:
-                        AppTextStyles.bodyLg.copyWith(color: AppColors.slate),
-                    contentPadding: const EdgeInsetsDirectional.symmetric(
-                      vertical: AppSpacing.sm,
-                    ),
-                  ),
+  /// The input field: a flat white surface with a 1px hairline border and
+  /// [AppRadius.lg] corners. Flat, no shadow.
+  Widget _buildInputField() {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.canvas,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: AppColors.hairline),
+      ),
+      padding: const EdgeInsetsDirectional.only(
+        start: AppSpacing.md,
+        end: AppSpacing.xs,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _controller,
+              textInputAction: TextInputAction.send,
+              onSubmitted: (_) => _submit(),
+              minLines: 1,
+              maxLines: 5,
+              style: AppTextStyles.bodyLg,
+              cursorColor: AppColors.ink,
+              decoration: InputDecoration(
+                isDense: true,
+                border: InputBorder.none,
+                hintText: 'اكتب سؤالك عن مستوى الماء…',
+                hintStyle:
+                    AppTextStyles.bodyLg.copyWith(color: AppColors.slate),
+                contentPadding: const EdgeInsetsDirectional.symmetric(
+                  vertical: AppSpacing.sm,
                 ),
               ),
-              // Disabled mic placeholder — voice input is out of scope (F1).
-              IconButton(
-                onPressed: null,
-                tooltip: 'الإدخال الصوتي غير متاح',
-                icon: const Icon(Icons.mic_none),
-                color: AppColors.slate,
-                disabledColor: AppColors.slate,
-                iconSize: AppSpacing.lg,
-              ),
-            ],
+            ),
           ),
-        ),
+          // Disabled mic placeholder — voice input is out of scope (F1).
+          IconButton(
+            onPressed: null,
+            tooltip: 'الإدخال الصوتي غير متاح',
+            icon: const Icon(Icons.mic_none),
+            color: AppColors.slate,
+            disabledColor: AppColors.slate,
+            iconSize: AppSpacing.lg,
+          ),
+        ],
       ),
     );
   }
 }
 
-/// Circular send button. A flowing [AnimatedGradient] when there's text to
-/// send; a flat dimmed disc otherwise.
+/// Circular send button. Solid black disc with a white arrow when there's text
+/// to send; a flat dimmed disc otherwise. Flat — no shadow, no gradient.
 class _SendButton extends StatelessWidget {
   const _SendButton({required this.enabled, required this.onTap});
 
@@ -175,7 +170,7 @@ class _SendButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.transparent,
+      color: enabled ? AppColors.ink : AppColors.surfaceSoft,
       shape: const CircleBorder(),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -183,31 +178,13 @@ class _SendButton extends StatelessWidget {
         child: SizedBox(
           width: _size,
           height: _size,
-          child: enabled
-              ? const AnimatedGradient(
-                  borderRadius:
-                      BorderRadius.all(Radius.circular(AppRadius.pill)),
-                  child: Center(
-                    child: Icon(
-                      Icons.arrow_upward,
-                      color: AppColors.card,
-                      size: AppSpacing.lg,
-                    ),
-                  ),
-                )
-              : DecoratedBox(
-                  decoration: const BoxDecoration(
-                    color: AppColors.line,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: Icon(
-                      Icons.arrow_upward,
-                      color: AppColors.slate,
-                      size: AppSpacing.lg,
-                    ),
-                  ),
-                ),
+          child: Center(
+            child: Icon(
+              Icons.arrow_upward,
+              color: enabled ? AppColors.canvas : AppColors.slate,
+              size: AppSpacing.lg,
+            ),
+          ),
         ),
       ),
     );

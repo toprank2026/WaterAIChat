@@ -3,15 +3,19 @@ import 'package:ma_water/core/design/app_colors.dart';
 import 'package:ma_water/core/design/app_radius.dart';
 import 'package:ma_water/core/design/app_spacing.dart';
 import 'package:ma_water/core/design/app_typography.dart';
+import 'package:ma_water/core/design/color_block.dart';
 import 'package:ma_water/data/models/enums.dart';
 import 'package:ma_water/ui/genui_blocks/block_spec.dart';
 
 /// Severity-coded alert card rendered inside the chat GenUI stream.
 ///
-/// Tinted by [AlertCardSpec.severity], with a leading warning icon, bold
-/// Arabic [AlertCardSpec.title], supporting [AlertCardSpec.body], and an
-/// optional italic AI note line prefixed with a subtle label. Tappable when
-/// [onTap] is supplied (e.g. to open the related station).
+/// Rendered as a flat pastel **color block** (the signature surface of the
+/// "Mā" design system) keyed by [AlertCardSpec.severity] — pink for critical,
+/// coral for warning, lime for info. A small mono uppercase eyebrow ("تنبيه")
+/// flags the block as an alert, above a bold Arabic [AlertCardSpec.title],
+/// supporting [AlertCardSpec.body], and an optional AI note line. Ink text
+/// throughout (weight, not gray, carries hierarchy). Tappable when [onTap] is
+/// supplied (e.g. to open the related station).
 class AlertCardBlock extends StatelessWidget {
   final AlertCardSpec spec;
   final VoidCallback? onTap;
@@ -22,27 +26,15 @@ class AlertCardBlock extends StatelessWidget {
     this.onTap,
   });
 
-  /// Foreground accent color for a given alert [severity].
-  static Color _accentColor(AlertSeverity severity) {
+  /// Pastel color-block surface for a given alert [severity].
+  static Color _blockColor(AlertSeverity severity) {
     switch (severity) {
       case AlertSeverity.info:
-        return AppColors.ok;
+        return AppColors.blockLime;
       case AlertSeverity.warning:
-        return AppColors.warn;
+        return AppColors.blockCoral;
       case AlertSeverity.critical:
-        return AppColors.danger;
-    }
-  }
-
-  /// Background (tint) color for a given alert [severity].
-  static Color _backgroundColor(AlertSeverity severity) {
-    switch (severity) {
-      case AlertSeverity.info:
-        return AppColors.okBg;
-      case AlertSeverity.warning:
-        return AppColors.warnBg;
-      case AlertSeverity.critical:
-        return AppColors.dangerBg;
+        return AppColors.blockPink;
     }
   }
 
@@ -60,48 +52,45 @@ class AlertCardBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = _accentColor(spec.severity);
-    final background = _backgroundColor(spec.severity);
     final aiNote = spec.aiNote;
 
-    final card = Container(
-      padding: const EdgeInsetsDirectional.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: accent.withValues(alpha: 0.35)),
-      ),
-      child: Row(
+    final card = ColorBlock(
+      color: _blockColor(spec.severity),
+      padding: const EdgeInsetsDirectional.all(AppSpacing.lg),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            _iconFor(spec.severity),
-            color: accent,
-            size: 24,
+          // Mono uppercase eyebrow with the severity glyph — taxonomy marker.
+          Row(
+            children: [
+              Icon(
+                _iconFor(spec.severity),
+                color: AppColors.ink,
+                size: 16,
+              ),
+              const SizedBox(width: AppSpacing.xs),
+              Text(
+                'تنبيه',
+                style: AppTextStyles.eyebrow.copyWith(color: AppColors.ink),
+              ),
+            ],
           ),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  spec.title,
-                  style: AppTextStyles.titleLg.copyWith(color: accent),
-                ),
-                if (spec.body.isNotEmpty) ...[
-                  const SizedBox(height: AppSpacing.xxs),
-                  Text(
-                    spec.body,
-                    style: AppTextStyles.bodyMd.copyWith(color: AppColors.ink),
-                  ),
-                ],
-                if (aiNote != null && aiNote.isNotEmpty) ...[
-                  const SizedBox(height: AppSpacing.xs),
-                  _AiNote(note: aiNote),
-                ],
-              ],
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            spec.title,
+            style: AppTextStyles.titleLg.copyWith(color: AppColors.ink),
+          ),
+          if (spec.body.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.xxs),
+            Text(
+              spec.body,
+              style: AppTextStyles.bodyMd.copyWith(color: AppColors.ink),
             ),
-          ),
+          ],
+          if (aiNote != null && aiNote.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.sm),
+            _AiNote(note: aiNote),
+          ],
         ],
       ),
     );
@@ -119,7 +108,7 @@ class AlertCardBlock extends StatelessWidget {
   }
 }
 
-/// Subtle italic AI commentary line, prefixed with a quiet Arabic label.
+/// Subtle italic AI commentary line, prefixed with a quiet mono Arabic label.
 class _AiNote extends StatelessWidget {
   final String note;
 
@@ -130,15 +119,14 @@ class _AiNote extends StatelessWidget {
     return RichText(
       text: TextSpan(
         style: AppTextStyles.bodyMd.copyWith(
-          color: AppColors.slate,
+          color: AppColors.ink,
           fontStyle: FontStyle.italic,
         ),
         children: [
           TextSpan(
             text: 'ملاحظة الذكاء: ',
             style: AppTextStyles.caption.copyWith(
-              color: AppColors.slate,
-              fontStyle: FontStyle.italic,
+              color: AppColors.ink,
             ),
           ),
           TextSpan(text: note),

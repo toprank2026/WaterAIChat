@@ -129,9 +129,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     return AppBar(
       backgroundColor: AppColors.bg,
       surfaceTintColor: AppColors.bg,
+      foregroundColor: AppColors.ink,
       elevation: 0,
       scrolledUnderElevation: 0,
       titleSpacing: AppSpacing.md,
+      // Flat white bar separated from the canvas by a single hairline rule.
+      bottom: const PreferredSize(
+        preferredSize: Size.fromHeight(AppSpacing.hair),
+        child: Divider(
+          height: AppSpacing.hair,
+          thickness: AppSpacing.hair,
+          color: AppColors.hairline,
+        ),
+      ),
       title: const Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -142,14 +152,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       ),
       actions: [
         const _AlertsPill(),
-        IconButton(
+        const SizedBox(width: AppSpacing.xxs),
+        _CircleIconButton(
           tooltip: 'الإعدادات',
-          icon: const Icon(Icons.settings_outlined, color: AppColors.slate),
-          onPressed: () => Navigator.of(context).push(
+          icon: Icons.settings_outlined,
+          onTap: () => Navigator.of(context).push(
             MaterialPageRoute<void>(builder: (_) => const SettingsScreen()),
           ),
         ),
-        const SizedBox(width: AppSpacing.xs),
+        const SizedBox(width: AppSpacing.md),
       ],
     );
   }
@@ -235,7 +246,43 @@ class _GeneratingPlaceholder extends StatelessWidget {
   }
 }
 
-/// The small green "live" indicator: a dot beside the "مباشر" label.
+/// A flat circular icon button on a [AppColors.surfaceSoft] ground — the
+/// design-system "button-icon-circular" used for inline actions on the white
+/// canvas. Monochrome ink glyph, no shadow.
+class _CircleIconButton extends StatelessWidget {
+  const _CircleIconButton({
+    required this.icon,
+    required this.onTap,
+    this.tooltip,
+  });
+
+  final IconData icon;
+  final VoidCallback onTap;
+  final String? tooltip;
+
+  @override
+  Widget build(BuildContext context) {
+    final Widget button = SizedBox(
+      width: 40,
+      height: 40,
+      child: Material(
+        color: AppColors.surfaceSoft,
+        shape: const CircleBorder(),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Center(child: Icon(icon, color: AppColors.ink, size: 20)),
+        ),
+      ),
+    );
+    return tooltip == null
+        ? button
+        : Tooltip(message: tooltip!, child: button);
+  }
+}
+
+/// The small "live" indicator: a hairline-stroked white pill with a solid ok
+/// dot beside the "مباشر" mono caption. Flat — depth comes from the 1px stroke.
 class _LiveIndicator extends StatelessWidget {
   const _LiveIndicator();
 
@@ -243,12 +290,13 @@ class _LiveIndicator extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsetsDirectional.symmetric(
-        horizontal: AppSpacing.xs,
+        horizontal: AppSpacing.sm,
         vertical: AppSpacing.xxs,
       ),
       decoration: BoxDecoration(
-        color: AppColors.okBg,
+        color: AppColors.canvas,
         borderRadius: BorderRadius.circular(AppRadius.pill),
+        border: Border.all(color: AppColors.hairline, width: AppSpacing.hair),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -261,10 +309,10 @@ class _LiveIndicator extends StatelessWidget {
               shape: BoxShape.circle,
             ),
           ),
-          const SizedBox(width: AppSpacing.xxs),
+          const SizedBox(width: AppSpacing.xs),
           Text(
             'مباشر',
-            style: AppTextStyles.caption.copyWith(color: AppColors.ok),
+            style: AppTextStyles.eyebrow.copyWith(color: AppColors.ink),
           ),
         ],
       ),
@@ -285,54 +333,47 @@ class _AlertsPill extends ConsumerWidget {
       orElse: () => 0,
     );
 
-    return Padding(
-      padding: const EdgeInsetsDirectional.only(end: AppSpacing.xxs),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppRadius.pill),
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute<void>(builder: (_) => const AlertsScreen()),
-        ),
-        child: Padding(
-          padding: const EdgeInsetsDirectional.all(AppSpacing.xs),
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              const Icon(
-                Icons.notifications_none,
-                color: AppColors.slate,
-              ),
-              if (count > 0)
-                PositionedDirectional(
-                  top: -AppSpacing.xxs,
-                  end: -AppSpacing.xxs,
-                  child: Container(
-                    padding: const EdgeInsetsDirectional.symmetric(
-                      horizontal: AppSpacing.xxs,
-                    ),
-                    constraints: const BoxConstraints(
-                      minWidth: AppSpacing.md,
-                      minHeight: AppSpacing.md,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.danger,
-                      borderRadius: BorderRadius.circular(AppRadius.pill),
-                      border: Border.all(color: AppColors.bg, width: 1.5),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      count > 99 ? '99+' : '$count',
-                      textAlign: TextAlign.center,
-                      style: AppTextStyles.caption.copyWith(
-                        color: AppColors.card,
-                        fontSize: 9,
-                      ),
-                    ),
-                  ),
-                ),
-            ],
+    // Circular surfaceSoft icon button (design-system "button-icon-circular")
+    // with a flat danger count badge ringed by the canvas to read above it.
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        _CircleIconButton(
+          tooltip: 'التنبيهات',
+          icon: Icons.notifications_none,
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(builder: (_) => const AlertsScreen()),
           ),
         ),
-      ),
+        if (count > 0)
+          PositionedDirectional(
+            top: -AppSpacing.xxs,
+            end: -AppSpacing.xxs,
+            child: Container(
+              padding: const EdgeInsetsDirectional.symmetric(
+                horizontal: AppSpacing.xxs,
+              ),
+              constraints: const BoxConstraints(
+                minWidth: AppSpacing.md,
+                minHeight: AppSpacing.md,
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.danger,
+                borderRadius: BorderRadius.circular(AppRadius.pill),
+                border: Border.all(color: AppColors.canvas, width: 1.5),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                count > 99 ? '99+' : '$count',
+                textAlign: TextAlign.center,
+                style: AppTextStyles.caption.copyWith(
+                  color: AppColors.canvas,
+                  fontSize: 9,
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

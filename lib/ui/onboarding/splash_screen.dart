@@ -6,13 +6,14 @@ import 'package:ma_water/core/design/app_spacing.dart';
 import 'package:ma_water/core/design/app_typography.dart';
 import 'package:ma_water/ui/chat/chat_screen.dart';
 import 'package:ma_water/ui/onboarding/onboarding_screen.dart';
-import 'package:ma_water/ui/shared/animated_gradient.dart';
 
 /// The launch screen for "Mā".
 ///
-/// Shows a full-bleed, continuously flowing [AnimatedGradient] background (the
-/// Gemini-style [AppColors.geminiColors] palette) with a centered white brand
-/// lockup and the Arabic tagline, then routes onward after a brief delay.
+/// A full-bleed [AppColors.blockNavy] poster — the single dark color block in
+/// the otherwise monochrome editorial system. The brand lockup (solid white
+/// drop glyph + "مياه" wordmark) and the Arabic tagline render in inverse ink
+/// on the navy ground, FLAT (no shadows, no gradients). After a brief settle
+/// the screen routes onward.
 ///
 /// In v1 the app always proceeds straight to [ChatScreen] for simplicity, but
 /// the [OnboardingScreen] route is kept available (and would be shown on first
@@ -72,52 +73,56 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
+    // Inverse ink on the navy block.
+    const Color onNavy = AppColors.canvas;
+
     return Scaffold(
-      body: AnimatedGradient(
-        colors: AppColors.geminiColors,
-        duration: const Duration(seconds: 8),
-        child: SizedBox.expand(
-          child: FadeTransition(
-            opacity: _fade,
-            child: ScaleTransition(
-              scale: _scale,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // White brand lockup: drop glyph + "مياه" wordmark.
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.water_drop,
-                        size: 56,
-                        color: AppColors.card,
-                      ),
-                      const SizedBox(width: AppSpacing.sm),
-                      Text(
-                        'مياه',
-                        style: AppTextStyles.displayLg.copyWith(
-                          color: AppColors.card,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  Padding(
-                    padding: const EdgeInsetsDirectional.symmetric(
-                      horizontal: AppSpacing.xl,
+      // Full-bleed navy color block — the single dark poster surface.
+      backgroundColor: AppColors.blockNavy,
+      body: SizedBox.expand(
+        child: FadeTransition(
+          opacity: _fade,
+          child: ScaleTransition(
+            scale: _scale,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Mono uppercase eyebrow — the editorial taxonomy marker.
+                Text(
+                  'IRAQ WATER LEVELS',
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.eyebrow.copyWith(color: onNavy),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                // White brand lockup: solid drop glyph + "مياه" wordmark.
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.water_drop,
+                      size: 56,
+                      color: onNavy,
                     ),
-                    child: Text(
-                      'مساعد مستوى المياه في العراق',
-                      textAlign: TextAlign.center,
-                      style: AppTextStyles.bodyLg.copyWith(
-                        color: AppColors.card,
-                      ),
+                    const SizedBox(width: AppSpacing.sm),
+                    Text(
+                      'مياه',
+                      style: AppTextStyles.displayLg.copyWith(color: onNavy),
                     ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.md),
+                Padding(
+                  padding: const EdgeInsetsDirectional.symmetric(
+                    horizontal: AppSpacing.xl,
                   ),
-                ],
-              ),
+                  child: Text(
+                    'مساعد مستوى المياه في العراق',
+                    textAlign: TextAlign.center,
+                    style: AppTextStyles.bodyLg.copyWith(color: onNavy),
+                  ),
+                ),
+              ],
             ),
           ),
         ),

@@ -14,14 +14,15 @@ import 'package:ma_water/ui/shared/status_pill.dart';
 /// padding. Layout is RTL-correct (directional padding/alignment only) and all
 /// copy is Arabic.
 ///
-/// Header shows the [StationListSpec.title] plus a count chip
-/// ("العدد: {count}"). The body is a bounded (max ~320px), internally
-/// scrollable list of station rows. Each row shows:
+/// Header shows a small mono uppercase eyebrow over the
+/// [StationListSpec.title], plus a flat hairline count chip ("العدد: {count}").
+/// The body is a bounded (max ~320px), internally scrollable list of station
+/// rows. Each row shows:
 ///  - the station [StationListItem.name] ([AppTextStyles.titleMd]),
 ///  - the water body + governorate ([AppColors.slate] caption),
 ///  - a trailing [StatusPill] when [StationListItem.status] is non-null,
-///  - a trailing info [IconButton] (north-east arrow) that calls [onOpen] with
-///    the station id to open the detail screen.
+///  - a trailing circular surfaceSoft icon button (north-east arrow) that calls
+///    [onOpen] with the station id to open the detail screen.
 ///
 /// Tapping the row itself calls [onAskStation] with the station name so the
 /// chat conversation continues about the selected station.
@@ -97,7 +98,8 @@ class StationListBlock extends StatelessWidget {
   }
 }
 
-/// The card header: title on the leading side, count chip on the trailing side.
+/// The card header: a mono uppercase eyebrow over the title on the leading
+/// side, count chip on the trailing side.
 class _Header extends StatelessWidget {
   const _Header({required this.title, required this.count});
 
@@ -107,13 +109,22 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         Expanded(
-          child: Text(
-            title,
-            style: AppTextStyles.titleLg,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Text('STATIONS', style: AppTextStyles.eyebrow),
+              const SizedBox(height: AppSpacing.xxs),
+              Text(
+                title,
+                style: AppTextStyles.titleLg,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ),
         ),
         const SizedBox(width: AppSpacing.sm),
@@ -123,7 +134,8 @@ class _Header extends StatelessWidget {
   }
 }
 
-/// A small mint pill showing the total station count ("العدد: {count}").
+/// A flat white hairline pill showing the total station count
+/// ("العدد: {count}").
 class _CountChip extends StatelessWidget {
   const _CountChip({required this.count});
 
@@ -137,12 +149,13 @@ class _CountChip extends StatelessWidget {
         vertical: AppSpacing.xxs,
       ),
       decoration: BoxDecoration(
-        color: AppColors.mint,
+        color: AppColors.canvas,
         borderRadius: BorderRadius.circular(AppRadius.pill),
+        border: Border.all(color: AppColors.hairline),
       ),
       child: Text(
         'العدد: $count',
-        style: AppTextStyles.caption.copyWith(color: AppColors.tealDark),
+        style: AppTextStyles.caption,
       ),
     );
   }
@@ -206,19 +219,8 @@ class _StationRow extends StatelessWidget {
               StatusPill(status: item.status!),
             ],
             if (openCb != null) ...<Widget>[
-              const SizedBox(width: AppSpacing.xxs),
-              IconButton(
-                onPressed: () => openCb(item.stationId),
-                icon: const Icon(Icons.north_east),
-                iconSize: 18,
-                color: AppColors.teal,
-                tooltip: 'فتح التفاصيل',
-                visualDensity: VisualDensity.compact,
-                constraints: const BoxConstraints(
-                  minWidth: 36,
-                  minHeight: 36,
-                ),
-              ),
+              const SizedBox(width: AppSpacing.xs),
+              _OpenButton(onPressed: () => openCb(item.stationId)),
             ],
           ],
         ),
@@ -237,5 +239,41 @@ class _StationRow extends StatelessWidget {
     ];
     if (parts.isEmpty) return null;
     return parts.join(' • ');
+  }
+}
+
+/// A flat circular [AppColors.surfaceSoft] icon button (north-east arrow) that
+/// drills into the station detail screen. Mirrors the Figma
+/// `button-icon-circular` recipe — no shadow, ink glyph.
+class _OpenButton extends StatelessWidget {
+  const _OpenButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  static const double _size = 36;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: 'فتح التفاصيل',
+      child: Material(
+        color: AppColors.surfaceSoft,
+        shape: const CircleBorder(),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onPressed,
+          customBorder: const CircleBorder(),
+          child: const SizedBox(
+            width: _size,
+            height: _size,
+            child: Icon(
+              Icons.north_east,
+              size: 18,
+              color: AppColors.ink,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

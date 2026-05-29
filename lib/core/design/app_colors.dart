@@ -3,65 +3,89 @@ import 'package:ma_water/data/models/enums.dart';
 
 /// Centralized color tokens for the "Mā" app.
 ///
+/// Monochrome black-ink-on-white-canvas editorial system: pure ink (#000) on
+/// pure canvas (#fff), FLAT (no shadows, no gradients), depth carried by 1px
+/// hairline borders plus oversized pastel color blocks. Weight (not gray)
+/// carries hierarchy.
+///
 /// Never hard-code colors in widgets — always reference [AppColors].
 class AppColors {
   AppColors._();
 
-  // Neutrals / surfaces
-  static const Color ink = Color(0xFF0D2B3E);
-  static const Color slate = Color(0xFF5A7283);
-  static const Color line = Color(0xFFE4EDF2);
-  static const Color bg = Color(0xFFF6FAFB);
-  static const Color card = Color(0xFFFFFFFF);
+  // ---------------------------------------------------------------------------
+  // Core monochrome
+  // ---------------------------------------------------------------------------
+  static const Color ink = Color(0xFF000000);
+  static const Color canvas = Color(0xFFFFFFFF);
 
-  // Brand
-  static const Color teal = Color(0xFF0D9AA6);
-  static const Color tealDark = Color(0xFF077C87);
-  static const Color aqua = Color(0xFF19BCD1);
-  static const Color mint = Color(0xFFE6FBFA);
-  static const Color mint2 = Color(0xFFD5F3F5);
-  static const Color sky = Color(0xFFEEF7FB);
+  // Surfaces (canvas-based; depth comes from hairlines + color blocks)
+  static const Color bg = canvas;
+  static const Color card = canvas;
+  static const Color hairline = Color(0xFFE6E6E6);
+  static const Color hairlineSoft = Color(0xFFF1F1F1);
+  static const Color surfaceSoft = Color(0xFFF7F7F5);
 
-  // Status
-  static const Color ok = Color(0xFF16A575);
-  static const Color okBg = Color(0xFFE3F7EF);
-  static const Color warn = Color(0xFFE8832F);
-  static const Color warnBg = Color(0xFFFDEFE1);
-  static const Color danger = Color(0xFFE0445F);
-  static const Color dangerBg = Color(0xFFFCE8EB);
+  /// Default 1px stroke. Repointed to [hairline].
+  static const Color line = hairline;
 
-  // Gradients
+  // Secondary ink — used sparingly; hierarchy should come from weight, not gray.
+  static const Color slate = Color(0xFF3A3A3A);
+
+  // ---------------------------------------------------------------------------
+  // Pastel color blocks (the depth device)
+  // ---------------------------------------------------------------------------
+  static const Color blockLime = Color(0xFFDCEEB1);
+  static const Color blockLilac = Color(0xFFC5B0F4);
+  static const Color blockCream = Color(0xFFF4ECD6);
+  static const Color blockPink = Color(0xFFEFD4D4);
+  static const Color blockMint = Color(0xFFC8E6CD);
+  static const Color blockCoral = Color(0xFFF3C9B6);
+  static const Color blockNavy = Color(0xFF1F1D3D);
+
+  /// Single saturated promo accent. Use scarcely — one per page.
+  static const Color accentMagenta = Color(0xFFFF3D8B);
+
+  // ---------------------------------------------------------------------------
+  // Status (foreground glyph + pastel-block tint background)
+  // ---------------------------------------------------------------------------
+  static const Color ok = Color(0xFF1EA64A);
+  static const Color okBg = blockMint;
+  static const Color warn = Color(0xFFB26B00);
+  static const Color warnBg = blockCoral;
+  static const Color danger = Color(0xFFD8324F);
+  static const Color dangerBg = blockPink;
+
+  // ---------------------------------------------------------------------------
+  // Legacy aliases (repointed into the monochrome system so callers compile)
+  // ---------------------------------------------------------------------------
+  static const Color teal = ink;
+  static const Color tealDark = Color(0xFF1A1A1A);
+  static const Color aqua = ink;
+  static const Color mint = surfaceSoft;
+  static const Color mint2 = hairline;
+  static const Color sky = surfaceSoft;
+
+  // ---------------------------------------------------------------------------
+  // Gradients — FLAT: every gradient resolves to solid ink.
+  // ---------------------------------------------------------------------------
   static const LinearGradient primaryGradient = LinearGradient(
-    colors: [teal, aqua],
+    colors: [ink, ink],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
-  /// Google-Gemini-style palette, blended with the water brand:
-  /// teal -> aqua -> blue -> purple. Drives the animated gradient kit
+  /// Flat ink palette. Drives the (now monochrome) animated gradient kit
   /// (AnimatedGradient / GradientText / GradientIcon / ThinkingIndicator).
-  static const List<Color> geminiColors = [
-    Color(0xFF0D9AA6),
-    Color(0xFF19BCD1),
-    Color(0xFF4F8CFF),
-    Color(0xFF8A6CFF),
-  ]; // teal->aqua->blue->purple
+  static const List<Color> geminiColors = [ink, ink, ink, ink];
 
   static const LinearGradient geminiGradient = LinearGradient(
-    colors: geminiColors,
+    colors: [ink, ink],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
-  /// Google-Gemini-style rainbow palette: blue -> purple -> red -> amber ->
-  /// green. Used by GradientText / GradientIcon for the full-spectrum accent.
-  static const List<Color> rainbowColors = [
-    Color(0xFF4285F4),
-    Color(0xFF9B72F2),
-    Color(0xFFD96570),
-    Color(0xFFF2A60C),
-    Color(0xFF34A853),
-  ]; // Google blue->purple->red->amber->green
+  /// Flat ink palette (full-spectrum accent neutralized to ink).
+  static const List<Color> rainbowColors = [ink, ink];
 
   static const LinearGradient rainbowGradient = LinearGradient(
     colors: rainbowColors,

@@ -75,12 +75,17 @@ class StationDetailScreen extends ConsumerWidget {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
+        backgroundColor: AppColors.canvas,
         appBar: AppBar(
           title: Text('تفاصيل المحطة', style: AppTextStyles.titleLg),
-          backgroundColor: AppColors.card,
-          surfaceTintColor: AppColors.card,
+          backgroundColor: AppColors.canvas,
+          surfaceTintColor: AppColors.canvas,
           foregroundColor: AppColors.ink,
           elevation: 0,
+          scrolledUnderElevation: 0,
+          shape: const Border(
+            bottom: BorderSide(color: AppColors.hairline),
+          ),
         ),
         body: dataAsync.when(
           loading: () => const _DetailLoading(),
@@ -196,28 +201,33 @@ class _HeaderCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.card,
         borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: AppColors.hairline),
       ),
-      padding: const EdgeInsetsDirectional.all(AppSpacing.md),
+      padding: const EdgeInsetsDirectional.all(AppSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // Editorial eyebrow + status, set in small uppercase mono taxonomy.
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Expanded(
                 child: Text(
-                  station.nameAr,
-                  style: AppTextStyles.displayMd,
+                  'محطة قياس',
+                  style: AppTextStyles.eyebrow,
                   textAlign: TextAlign.start,
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),
-              Padding(
-                padding: const EdgeInsetsDirectional.only(top: AppSpacing.xxs),
-                child: StatusPill(status: current.status),
-              ),
+              StatusPill(status: current.status),
             ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          // Oversized editorial name — weight carries the hierarchy.
+          Text(
+            station.nameAr,
+            style: AppTextStyles.displayMd,
+            textAlign: TextAlign.start,
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
@@ -225,7 +235,7 @@ class _HeaderCard extends StatelessWidget {
             style: AppTextStyles.bodyLg.copyWith(color: AppColors.slate),
             textAlign: TextAlign.start,
           ),
-          const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: AppSpacing.lg),
           Wrap(
             spacing: AppSpacing.xs,
             runSpacing: AppSpacing.xs,
@@ -268,13 +278,14 @@ class _MetaChip extends StatelessWidget {
         vertical: AppSpacing.xxs + 2,
       ),
       decoration: BoxDecoration(
-        color: AppColors.sky,
+        color: AppColors.canvas,
         borderRadius: BorderRadius.circular(AppRadius.pill),
+        border: Border.all(color: AppColors.hairline),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: AppSpacing.md, color: AppColors.teal),
+          Icon(icon, size: AppSpacing.md, color: AppColors.ink),
           const SizedBox(width: AppSpacing.xxs + 2),
           Text(
             label,
@@ -295,13 +306,13 @@ class _AskButtonBar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Container(
       padding: const EdgeInsetsDirectional.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        border: const Border(top: BorderSide(color: AppColors.line)),
+      decoration: const BoxDecoration(
+        color: AppColors.canvas,
+        border: Border(top: BorderSide(color: AppColors.hairline)),
       ),
       child: SafeArea(
         top: false,
-        child: _GradientButton(
+        child: _AskPillButton(
           label: 'اسأل عن هذه المحطة',
           icon: Icons.chat_bubble_outline,
           onPressed: () {
@@ -315,8 +326,11 @@ class _AskButtonBar extends ConsumerWidget {
   }
 }
 
-class _GradientButton extends StatelessWidget {
-  const _GradientButton({
+/// The primary call-to-action: a flat black pill (ink background, canvas-white
+/// label + icon) per the Figma `button-primary` — no gradient, no shadow, just
+/// solid ink with [AppRadius.pill] corners.
+class _AskPillButton extends StatelessWidget {
+  const _AskPillButton({
     required this.label,
     required this.icon,
     required this.onPressed,
@@ -328,32 +342,27 @@ class _GradientButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: AppColors.primaryGradient,
-        borderRadius: BorderRadius.circular(AppRadius.pill),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(AppRadius.pill),
-          onTap: onPressed,
-          child: Padding(
-            padding: const EdgeInsetsDirectional.symmetric(
-              vertical: AppSpacing.sm,
-              horizontal: AppSpacing.lg,
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(icon, color: AppColors.card, size: AppSpacing.lg),
-                const SizedBox(width: AppSpacing.xs),
-                Text(
-                  label,
-                  style: AppTextStyles.titleMd.copyWith(color: AppColors.card),
-                ),
-              ],
-            ),
+    return Material(
+      color: AppColors.ink,
+      borderRadius: BorderRadius.circular(AppRadius.pill),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onPressed,
+        child: Padding(
+          padding: const EdgeInsetsDirectional.symmetric(
+            vertical: AppSpacing.sm + AppSpacing.xxs,
+            horizontal: AppSpacing.lg,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: AppColors.canvas, size: AppSpacing.lg),
+              const SizedBox(width: AppSpacing.xs),
+              Text(
+                label,
+                style: AppTextStyles.titleMd.copyWith(color: AppColors.canvas),
+              ),
+            ],
           ),
         ),
       ),

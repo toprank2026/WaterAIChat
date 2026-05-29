@@ -33,31 +33,35 @@ class EmptyState extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            // Flat hairline circle: surfaceSoft fill, 1px hairline border,
+            // solid ink glyph. No shadow, no fill color — depth is the border.
             Container(
               width: AppSpacing.xxl + AppSpacing.md,
               height: AppSpacing.xxl + AppSpacing.md,
-              decoration: const BoxDecoration(
-                color: AppColors.mint,
+              decoration: BoxDecoration(
+                color: AppColors.surfaceSoft,
                 shape: BoxShape.circle,
+                border: Border.all(color: AppColors.hairline),
               ),
               child: Icon(
                 icon,
                 size: AppSpacing.xl,
-                color: AppColors.teal,
+                color: AppColors.ink,
               ),
             ),
-            const SizedBox(height: AppSpacing.md),
+            const SizedBox(height: AppSpacing.lg),
             Text(
               title,
               textAlign: TextAlign.center,
-              style: AppTextStyles.titleMd,
+              style: AppTextStyles.titleLg,
             ),
             if (subtitle != null) ...[
               const SizedBox(height: AppSpacing.xs),
               Text(
                 subtitle!,
                 textAlign: TextAlign.center,
-                style: AppTextStyles.bodyMd.copyWith(color: AppColors.slate),
+                // Weight, not gray, carries hierarchy — body stays ink.
+                style: AppTextStyles.bodyMd,
               ),
             ],
           ],

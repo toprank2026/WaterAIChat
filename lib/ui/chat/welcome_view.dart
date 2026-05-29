@@ -3,10 +3,12 @@ import 'package:ma_water/core/design/app_colors.dart';
 import 'package:ma_water/core/design/app_radius.dart';
 import 'package:ma_water/core/design/app_spacing.dart';
 import 'package:ma_water/core/design/app_typography.dart';
+import 'package:ma_water/core/design/color_block.dart';
 import 'package:ma_water/ui/shared/animated_gradient.dart';
 
-/// Gemini-style empty state for the chat: a large gradient greeting, a sparkle
-/// accent, and a few tappable suggestion cards that seed the first question.
+/// Editorial empty state for the chat: a small mono eyebrow, a large ink
+/// headline on a soft cream color block, a flat ink sparkle accent, and a few
+/// tappable suggestion pills that seed the first question.
 ///
 /// Shown by [ChatScreen] when the transcript holds only the seeded welcome
 /// message. Tapping a suggestion forwards its text to [onSuggestion], which the
@@ -44,29 +46,41 @@ class WelcomeView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          const SizedBox(height: AppSpacing.md),
+          // Cream color block — the one pastel "poster" panel of the section.
+          ColorBlock(
+            color: AppColors.blockCream,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Flat ink sparkle — the "generative" cue (kit is now flat).
+                const GradientIcon(
+                  icon: Icons.auto_awesome,
+                  size: AppSpacing.xl,
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                // Mono UPPERCASE eyebrow above the headline.
+                Text('MĀ · AI', style: AppTextStyles.eyebrow),
+                const SizedBox(height: AppSpacing.sm),
+                // Big editorial ink headline.
+                Text('مرحباً 👋', style: AppTextStyles.displayLg),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  'كيف أساعدك بمناسيب المياه اليوم؟',
+                  style: AppTextStyles.displayMd,
+                ),
+                const SizedBox(height: AppSpacing.md),
+                Text(
+                  'اختر اقتراحاً للبدء، أو اكتب سؤالك بالعربية في الأسفل.',
+                  style: AppTextStyles.bodyLg,
+                ),
+              ],
+            ),
+          ),
           const SizedBox(height: AppSpacing.xl),
-          // Sparkle accent — the Gemini "generative" cue, full-spectrum rainbow.
-          const GradientIcon(
-            icon: Icons.auto_awesome,
-            size: AppSpacing.xxl,
-            gradient: AppColors.rainbowGradient,
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          GradientText(
-            'مرحباً 👋',
-            style: AppTextStyles.displayLg,
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          GradientText(
-            'كيف أساعدك بمناسيب المياه اليوم؟',
-            style: AppTextStyles.displayMd,
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            'اختر اقتراحاً للبدء، أو اكتب سؤالك بالعربية في الأسفل.',
-            style: AppTextStyles.bodyLg.copyWith(color: AppColors.slate),
-          ),
-          const SizedBox(height: AppSpacing.xl),
+          // Mono eyebrow flagging the suggestion list.
+          Text('اقتراحات', style: AppTextStyles.eyebrow),
+          const SizedBox(height: AppSpacing.md),
           ..._suggestions.map(
             (s) => Padding(
               padding: const EdgeInsetsDirectional.only(bottom: AppSpacing.sm),
@@ -82,7 +96,8 @@ class WelcomeView extends StatelessWidget {
   }
 }
 
-/// A single tappable suggestion: a leading icon, the prompt text, and a chevron.
+/// A single tappable suggestion rendered as a flat white hairline pill: a
+/// leading ink icon, the prompt text, and a trailing arrow.
 class _SuggestionCard extends StatelessWidget {
   const _SuggestionCard({required this.suggestion, required this.onTap});
 
@@ -92,23 +107,23 @@ class _SuggestionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppColors.card,
-      borderRadius: BorderRadius.circular(AppRadius.lg),
+      color: AppColors.canvas,
+      borderRadius: BorderRadius.circular(AppRadius.pill),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
         child: Container(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppRadius.lg),
-            border: Border.all(color: AppColors.line),
+            borderRadius: BorderRadius.circular(AppRadius.pill),
+            border: Border.all(color: AppColors.hairline),
           ),
           padding: const EdgeInsetsDirectional.symmetric(
-            horizontal: AppSpacing.md,
+            horizontal: AppSpacing.lg,
             vertical: AppSpacing.md,
           ),
           child: Row(
             children: [
-              Icon(suggestion.icon, color: AppColors.teal, size: AppSpacing.lg),
+              Icon(suggestion.icon, color: AppColors.ink, size: AppSpacing.lg),
               const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: Text(
@@ -119,7 +134,7 @@ class _SuggestionCard extends StatelessWidget {
               const SizedBox(width: AppSpacing.xs),
               const Icon(
                 Icons.arrow_outward,
-                color: AppColors.slate,
+                color: AppColors.ink,
                 size: AppSpacing.md,
               ),
             ],

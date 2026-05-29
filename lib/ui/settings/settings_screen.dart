@@ -4,6 +4,7 @@ import 'package:ma_water/core/design/app_colors.dart';
 import 'package:ma_water/core/design/app_radius.dart';
 import 'package:ma_water/core/design/app_spacing.dart';
 import 'package:ma_water/core/design/app_typography.dart';
+import 'package:ma_water/core/design/color_block.dart';
 import 'package:ma_water/core/di/providers.dart';
 import 'package:ma_water/core/settings/settings_providers.dart';
 import 'package:ma_water/ui/shared/animated_gradient.dart';
@@ -34,31 +35,37 @@ class SettingsScreen extends ConsumerWidget {
       backgroundColor: AppColors.bg,
       appBar: AppBar(
         title: Text('الإعدادات', style: AppTextStyles.titleLg),
-        backgroundColor: AppColors.card,
-        surfaceTintColor: AppColors.card,
+        backgroundColor: AppColors.canvas,
+        surfaceTintColor: AppColors.canvas,
         elevation: 0,
+        scrolledUnderElevation: 0,
         centerTitle: true,
       ),
       body: ListView(
-        padding: const EdgeInsetsDirectional.all(AppSpacing.md),
+        padding: const EdgeInsetsDirectional.fromSTEB(
+          AppSpacing.md,
+          AppSpacing.xs,
+          AppSpacing.md,
+          AppSpacing.xl,
+        ),
         children: [
-          // Thin Gemini-style gradient accent at the top of the screen.
+          // Flat ink hairline accent at the top of the settings list.
           const _GradientAccent(),
-          const SizedBox(height: AppSpacing.lg),
+          const SizedBox(height: AppSpacing.xl),
           _SectionLabel(text: 'مصدر البيانات'),
-          const SizedBox(height: AppSpacing.xs),
+          const SizedBox(height: AppSpacing.sm),
           _DataSourceBanner(isMock: isMock, repoTypeName: repoTypeName),
-          const SizedBox(height: AppSpacing.lg),
+          const SizedBox(height: AppSpacing.xl),
           _SectionLabel(text: 'الذكاء الاصطناعي'),
-          const SizedBox(height: AppSpacing.xs),
+          const SizedBox(height: AppSpacing.sm),
           const _GeminiCard(),
-          const SizedBox(height: AppSpacing.lg),
+          const SizedBox(height: AppSpacing.xl),
           _SectionLabel(text: 'المظهر'),
-          const SizedBox(height: AppSpacing.xs),
+          const SizedBox(height: AppSpacing.sm),
           const _ThemeToggleCard(),
-          const SizedBox(height: AppSpacing.lg),
+          const SizedBox(height: AppSpacing.xl),
           _SectionLabel(text: 'حول التطبيق'),
-          const SizedBox(height: AppSpacing.xs),
+          const SizedBox(height: AppSpacing.sm),
           const _AboutCard(version: _appVersion),
         ],
       ),
@@ -66,21 +73,23 @@ class SettingsScreen extends ConsumerWidget {
   }
 }
 
-/// A thin, continuously flowing Gemini-style gradient bar used as a subtle
-/// header accent at the top of the settings list.
+/// A thin flat ink hairline used as a quiet editorial rule at the top of the
+/// settings list. (Formerly an animated Gemini gradient bar; the kit is now
+/// flat, so this resolves to a solid ink line.)
 class _GradientAccent extends StatelessWidget {
   const _GradientAccent();
 
   @override
   Widget build(BuildContext context) {
     return AnimatedGradient(
+      colors: const [AppColors.ink],
       borderRadius: BorderRadius.circular(AppRadius.pill),
-      child: const SizedBox(height: AppSpacing.xs, width: double.infinity),
+      child: const SizedBox(height: AppSpacing.hair, width: double.infinity),
     );
   }
 }
 
-/// A small uppercase-style section heading used between cards.
+/// A small uppercase mono eyebrow heading used between sections.
 class _SectionLabel extends StatelessWidget {
   const _SectionLabel({required this.text});
 
@@ -89,16 +98,14 @@ class _SectionLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsetsDirectional.only(start: AppSpacing.xs),
-      child: Text(
-        text,
-        style: AppTextStyles.caption.copyWith(color: AppColors.slate),
-      ),
+      padding: const EdgeInsetsDirectional.only(start: AppSpacing.xxs),
+      child: Text(text, style: AppTextStyles.eyebrow),
     );
   }
 }
 
-/// A rounded card surface used to group related rows.
+/// A flat white card with a 1px hairline border used to group related rows.
+/// No shadow — depth comes from the hairline (DESIGN.md → elevation level 1).
 class _SettingsCard extends StatelessWidget {
   const _SettingsCard({required this.child});
 
@@ -110,7 +117,7 @@ class _SettingsCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.card,
         borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: AppColors.hairline),
       ),
       clipBehavior: Clip.antiAlias,
       child: child,
@@ -119,6 +126,10 @@ class _SettingsCard extends StatelessWidget {
 }
 
 /// Banner indicating whether the app reads local mock data or a remote API.
+///
+/// Rendered as a single flat pastel color block whose hue carries the severity
+/// (coral for the temporary mock source, mint for a live connection) — the
+/// color is the depth device; no shadow.
 class _DataSourceBanner extends StatelessWidget {
   const _DataSourceBanner({
     required this.isMock,
@@ -131,32 +142,32 @@ class _DataSourceBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Color accent = isMock ? AppColors.warn : AppColors.ok;
-    final Color accentBg = isMock ? AppColors.warnBg : AppColors.okBg;
+    final Color blockColor = isMock ? AppColors.warnBg : AppColors.okBg;
     final IconData icon =
         isMock ? Icons.storage_rounded : Icons.cloud_done_rounded;
+    final String eyebrow = isMock ? 'MOCK / LOCAL' : 'LIVE / API';
     final String title =
         isMock ? 'البيانات المحلية (Mock)' : 'API @ <host>';
     final String subtitle = isMock
         ? 'يتم استخدام بيانات تجريبية مخزّنة داخل التطبيق.'
         : 'متصل بخادم البيانات الحيّة عبر الإنترنت.';
 
-    return Container(
+    return ColorBlock(
+      color: blockColor,
       padding: const EdgeInsetsDirectional.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: accentBg,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: accent.withValues(alpha: 0.25)),
-      ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Solid ink glyph chip — flat, no tint fill.
           Container(
-            width: AppSpacing.xl,
-            height: AppSpacing.xl,
+            width: AppSpacing.xl + AppSpacing.xs,
+            height: AppSpacing.xl + AppSpacing.xs,
             decoration: BoxDecoration(
-              color: accent.withValues(alpha: 0.15),
+              color: AppColors.ink,
               borderRadius: BorderRadius.circular(AppRadius.md),
             ),
-            child: Icon(icon, size: AppSpacing.lg, color: accent),
+            alignment: Alignment.center,
+            child: Icon(icon, size: AppSpacing.lg, color: AppColors.canvas),
           ),
           const SizedBox(width: AppSpacing.sm),
           Expanded(
@@ -164,13 +175,19 @@ class _DataSourceBanner extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  title,
-                  style: AppTextStyles.titleMd.copyWith(color: accent),
+                  eyebrow,
+                  // Mono eyebrow tinted with the severity foreground.
+                  style: AppTextStyles.eyebrow.copyWith(color: accent),
                 ),
                 const SizedBox(height: AppSpacing.xxs),
+                Text(title, style: AppTextStyles.titleMd),
+                const SizedBox(height: AppSpacing.xxs),
+                Text(subtitle, style: AppTextStyles.bodyMd),
+                const SizedBox(height: AppSpacing.xxs),
+                // Keep the runtimeType data-source diagnostic visible.
                 Text(
-                  subtitle,
-                  style: AppTextStyles.bodyMd.copyWith(color: AppColors.slate),
+                  repoTypeName,
+                  style: AppTextStyles.caption,
                 ),
               ],
             ),
@@ -249,7 +266,7 @@ class _GeminiCardState extends ConsumerState<_GeminiCard> {
         SnackBar(
           content: Text(
             message,
-            style: AppTextStyles.bodyMd.copyWith(color: AppColors.card),
+            style: AppTextStyles.bodyMd.copyWith(color: AppColors.canvas),
             textAlign: TextAlign.start,
           ),
           backgroundColor: AppColors.ink,
@@ -269,14 +286,14 @@ class _GeminiCardState extends ConsumerState<_GeminiCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header: sparkle + title + status.
+            // Header: solid-ink sparkle chip + title + status.
             Row(
               children: [
                 Container(
-                  width: AppSpacing.xl,
-                  height: AppSpacing.xl,
+                  width: AppSpacing.xl + AppSpacing.xs,
+                  height: AppSpacing.xl + AppSpacing.xs,
                   decoration: BoxDecoration(
-                    color: AppColors.teal.withValues(alpha: 0.10),
+                    color: AppColors.surfaceSoft,
                     borderRadius: BorderRadius.circular(AppRadius.md),
                   ),
                   alignment: Alignment.center,
@@ -299,13 +316,13 @@ class _GeminiCardState extends ConsumerState<_GeminiCard> {
               ],
             ),
             const SizedBox(height: AppSpacing.md),
-            const Divider(height: 1, color: AppColors.line),
+            const Divider(height: 1, thickness: 1, color: AppColors.hairline),
             const SizedBox(height: AppSpacing.md),
 
             // API key field.
             Text(
               'مفتاح Gemini API',
-              style: AppTextStyles.titleMd.copyWith(color: AppColors.slate),
+              style: AppTextStyles.eyebrow,
             ),
             const SizedBox(height: AppSpacing.xs),
             TextField(
@@ -315,6 +332,7 @@ class _GeminiCardState extends ConsumerState<_GeminiCard> {
               enableSuggestions: false,
               textInputAction: TextInputAction.done,
               style: AppTextStyles.bodyLg,
+              cursorColor: AppColors.ink,
               decoration: _fieldDecoration(
                 hint: 'ألصق مفتاح API هنا',
                 suffix: IconButton(
@@ -334,40 +352,49 @@ class _GeminiCardState extends ConsumerState<_GeminiCard> {
             const SizedBox(height: AppSpacing.sm),
             Row(
               children: [
+                // Primary pill: ink fill + white text.
                 Expanded(
                   child: FilledButton.icon(
                     onPressed: _saveKey,
                     icon: const Icon(Icons.check_rounded, size: AppSpacing.md),
-                    label: Text('حفظ', style: AppTextStyles.titleMd
-                        .copyWith(color: AppColors.card)),
+                    label: Text(
+                      'حفظ',
+                      style: AppTextStyles.titleMd
+                          .copyWith(color: AppColors.canvas),
+                    ),
                     style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.teal,
-                      foregroundColor: AppColors.card,
+                      backgroundColor: AppColors.ink,
+                      foregroundColor: AppColors.canvas,
+                      elevation: 0,
                       padding: const EdgeInsetsDirectional.symmetric(
                         vertical: AppSpacing.sm,
                       ),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.md),
+                        borderRadius: BorderRadius.circular(AppRadius.pill),
                       ),
                     ),
                   ),
                 ),
                 const SizedBox(width: AppSpacing.sm),
+                // Secondary pill: white fill + ink text + hairline border.
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: connected ? _clearKey : null,
                     icon: const Icon(Icons.delete_outline_rounded,
                         size: AppSpacing.md),
-                    label: Text('مسح', style: AppTextStyles.titleMd
-                        .copyWith(color: AppColors.danger)),
+                    label: Text(
+                      'مسح',
+                      style: AppTextStyles.titleMd.copyWith(color: AppColors.ink),
+                    ),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.danger,
-                      side: const BorderSide(color: AppColors.line),
+                      foregroundColor: AppColors.ink,
+                      backgroundColor: AppColors.canvas,
+                      side: const BorderSide(color: AppColors.hairline),
                       padding: const EdgeInsetsDirectional.symmetric(
                         vertical: AppSpacing.sm,
                       ),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.md),
+                        borderRadius: BorderRadius.circular(AppRadius.pill),
                       ),
                     ),
                   ),
@@ -376,13 +403,13 @@ class _GeminiCardState extends ConsumerState<_GeminiCard> {
             ),
 
             const SizedBox(height: AppSpacing.md),
-            const Divider(height: 1, color: AppColors.line),
+            const Divider(height: 1, thickness: 1, color: AppColors.hairline),
             const SizedBox(height: AppSpacing.md),
 
             // Optional model override.
             Text(
               'النموذج (اختياري)',
-              style: AppTextStyles.titleMd.copyWith(color: AppColors.slate),
+              style: AppTextStyles.eyebrow,
             ),
             const SizedBox(height: AppSpacing.xs),
             TextField(
@@ -391,13 +418,17 @@ class _GeminiCardState extends ConsumerState<_GeminiCard> {
               enableSuggestions: false,
               textInputAction: TextInputAction.done,
               style: AppTextStyles.bodyLg,
+              cursorColor: AppColors.ink,
               decoration: _fieldDecoration(
                 hint: 'gemini-2.0-flash',
                 suffix: TextButton(
                   onPressed: _saveModel,
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.ink,
+                  ),
                   child: Text(
                     'حفظ',
-                    style: AppTextStyles.titleMd.copyWith(color: AppColors.teal),
+                    style: AppTextStyles.titleMd.copyWith(color: AppColors.ink),
                   ),
                 ),
               ),
@@ -405,19 +436,20 @@ class _GeminiCardState extends ConsumerState<_GeminiCard> {
             ),
 
             const SizedBox(height: AppSpacing.md),
-            // Hint: where to get a key + local-only storage.
+            // Hint: where to get a key + local-only storage. Flat soft surface.
             Container(
               padding: const EdgeInsetsDirectional.all(AppSpacing.sm),
               decoration: BoxDecoration(
-                color: AppColors.sky,
+                color: AppColors.surfaceSoft,
                 borderRadius: BorderRadius.circular(AppRadius.md),
+                border: Border.all(color: AppColors.hairline),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Icon(
                     Icons.info_outline_rounded,
-                    color: AppColors.teal,
+                    color: AppColors.ink,
                     size: AppSpacing.md + AppSpacing.xxs,
                   ),
                   const SizedBox(width: AppSpacing.xs),
@@ -445,7 +477,7 @@ class _GeminiCardState extends ConsumerState<_GeminiCard> {
       hintStyle: AppTextStyles.bodyMd.copyWith(color: AppColors.slate),
       isDense: true,
       filled: true,
-      fillColor: AppColors.bg,
+      fillColor: AppColors.canvas,
       suffixIcon: suffix,
       contentPadding: const EdgeInsetsDirectional.symmetric(
         horizontal: AppSpacing.sm,
@@ -453,11 +485,11 @@ class _GeminiCardState extends ConsumerState<_GeminiCard> {
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppRadius.md),
-        borderSide: const BorderSide(color: AppColors.line),
+        borderSide: const BorderSide(color: AppColors.hairline),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppRadius.md),
-        borderSide: const BorderSide(color: AppColors.teal, width: 1.5),
+        borderSide: const BorderSide(color: AppColors.ink, width: 1.5),
       ),
     );
   }
@@ -465,8 +497,9 @@ class _GeminiCardState extends ConsumerState<_GeminiCard> {
 
 /// Connection status line with a Gemini sparkle.
 ///
-/// Shows a gradient "connected" state when an API key is configured, otherwise
-/// a muted "local engine" state.
+/// Shows a solid-ink "connected" state when an API key is configured, otherwise
+/// a muted "local engine" state. (The kit is now flat, so the sparkle/text
+/// render in solid ink.)
 class _StatusLine extends StatelessWidget {
   const _StatusLine({required this.connected});
 
@@ -516,7 +549,7 @@ class _ThemeToggleCard extends StatelessWidget {
         enabled: false,
         contentPadding: const EdgeInsetsDirectional.symmetric(
           horizontal: AppSpacing.md,
-          vertical: AppSpacing.xxs,
+          vertical: AppSpacing.xs,
         ),
         leading: _LeadingIcon(
           icon: Icons.dark_mode_rounded,
@@ -539,7 +572,7 @@ class _ThemeToggleCard extends StatelessWidget {
             child: Switch(
               value: false,
               onChanged: (_) {},
-              activeThumbColor: AppColors.teal,
+              activeThumbColor: AppColors.ink,
             ),
           ),
         ),
@@ -564,16 +597,18 @@ class _AboutCard extends StatelessWidget {
           children: [
             Row(
               children: [
+                // Solid ink identity chip (flat — no gradient).
                 Container(
                   width: AppSpacing.xl + AppSpacing.xs,
                   height: AppSpacing.xl + AppSpacing.xs,
                   decoration: BoxDecoration(
-                    gradient: AppColors.primaryGradient,
+                    color: AppColors.ink,
                     borderRadius: BorderRadius.circular(AppRadius.md),
                   ),
+                  alignment: Alignment.center,
                   child: const Icon(
                     Icons.water_drop_rounded,
-                    color: AppColors.card,
+                    color: AppColors.canvas,
                     size: AppSpacing.lg,
                   ),
                 ),
@@ -586,8 +621,9 @@ class _AboutCard extends StatelessWidget {
                       const SizedBox(height: AppSpacing.xxs),
                       Text(
                         'الإصدار $version',
-                        style: AppTextStyles.bodyMd
-                            .copyWith(color: AppColors.slate),
+                        style: AppTextStyles.caption.copyWith(
+                          color: AppColors.slate,
+                        ),
                       ),
                     ],
                   ),
@@ -595,7 +631,7 @@ class _AboutCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: AppSpacing.md),
-            const Divider(height: 1, color: AppColors.line),
+            const Divider(height: 1, thickness: 1, color: AppColors.hairline),
             const SizedBox(height: AppSpacing.md),
             Text(
               'مساعد ذكي لمراقبة مناسيب المياه في العراق، يقدّم تحليلات '
@@ -610,7 +646,7 @@ class _AboutCard extends StatelessWidget {
   }
 }
 
-/// Rounded square container holding a leading list-tile icon.
+/// Rounded-square container holding a leading list-tile icon, flat soft surface.
 class _LeadingIcon extends StatelessWidget {
   const _LeadingIcon({required this.icon, required this.color});
 
@@ -623,9 +659,10 @@ class _LeadingIcon extends StatelessWidget {
       width: AppSpacing.xl,
       height: AppSpacing.xl,
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
+        color: AppColors.surfaceSoft,
         borderRadius: BorderRadius.circular(AppRadius.md),
       ),
+      alignment: Alignment.center,
       child: Icon(icon, size: AppSpacing.md + AppSpacing.xxs, color: color),
     );
   }

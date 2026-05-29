@@ -1,17 +1,16 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:ma_water/core/design/app_colors.dart';
 
-/// A continuously flowing [LinearGradient] painted as the background of an
-/// optional [child].
+/// A flat solid-color background painted behind an optional [child].
 ///
-/// The gradient's `begin`/`end` alignments orbit the box driven by a looping
-/// [AnimationController], producing a smooth, subtle, infinite "living" sheen —
-/// the Gemini-style ambient gradient used across the chat, settings, and
-/// onboarding surfaces.
+/// Formerly a continuously orbiting [LinearGradient]; under the monochrome,
+/// shadow-free editorial system the surface is now a single flat fill. The
+/// first entry of [colors] (defaulting to [AppColors.ink]) supplies the
+/// solid color — no animation, no gradient.
 ///
-/// Self-contained: owns and disposes its own ticker.
+/// The looping [AnimationController] is retained (and disposed) so the widget
+/// API is unchanged and call sites keep compiling, but it no longer drives any
+/// visual change.
 class AnimatedGradient extends StatefulWidget {
   const AnimatedGradient({
     this.colors = AppColors.geminiColors,
@@ -21,16 +20,17 @@ class AnimatedGradient extends StatefulWidget {
     super.key,
   });
 
-  /// Gradient stops, in order. Defaults to [AppColors.geminiColors].
+  /// Color list, kept for API compatibility. Only the first entry is used as
+  /// the flat fill; if empty, falls back to [AppColors.ink].
   final List<Color> colors;
 
-  /// Optional content painted on top of the animated gradient.
+  /// Optional content painted on top of the solid fill.
   final Widget? child;
 
-  /// One full orbit of the gradient direction.
+  /// Retained for API compatibility; no longer drives a visible animation.
   final Duration duration;
 
-  /// Optional rounding clipped against the gradient fill.
+  /// Optional rounding clipped against the solid fill.
   final BorderRadius? borderRadius;
 
   @override
@@ -47,7 +47,7 @@ class _AnimatedGradientState extends State<AnimatedGradient>
     _controller = AnimationController(
       vsync: this,
       duration: widget.duration,
-    )..repeat();
+    );
   }
 
   @override
@@ -55,11 +55,6 @@ class _AnimatedGradientState extends State<AnimatedGradient>
     super.didUpdateWidget(oldWidget);
     if (oldWidget.duration != widget.duration) {
       _controller.duration = widget.duration;
-      if (_controller.isAnimating) {
-        _controller
-          ..stop()
-          ..repeat();
-      }
     }
   }
 
@@ -69,39 +64,26 @@ class _AnimatedGradientState extends State<AnimatedGradient>
     super.dispose();
   }
 
-  /// A unit-circle alignment offset by [phase] turns (0..1).
-  Alignment _alignmentForPhase(double phase) {
-    final double angle = phase * 2 * math.pi;
-    return Alignment(math.cos(angle), math.sin(angle));
-  }
-
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        final double t = _controller.value;
-        final Alignment begin = _alignmentForPhase(t);
-        // Diametrically opposite point keeps the gradient axis full-width.
-        final Alignment end = _alignmentForPhase(t + 0.5);
-        return DecoratedBox(
-          decoration: BoxDecoration(
-            borderRadius: widget.borderRadius,
-            gradient: LinearGradient(
-              colors: widget.colors,
-              begin: begin,
-              end: end,
-            ),
-          ),
-          child: child,
-        );
-      },
+    // Flat solid fill — first color, or ink. No gradient, no shadow.
+    final Color fill = widget.colors.isNotEmpty
+        ? widget.colors.first
+        : AppColors.ink;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: fill,
+        borderRadius: widget.borderRadius,
+      ),
       child: widget.child,
     );
   }
 }
 
-/// Paints [text] filled with a [gradient] via a [ShaderMask].
+/// Paints [text] in a flat solid [AppColors.ink].
+///
+/// Formerly filled the glyphs with a gradient via a [ShaderMask]; the [gradient]
+/// param is retained for API compatibility but no longer affects rendering.
 class GradientText extends StatelessWidget {
   const GradientText(
     this.text, {
@@ -112,23 +94,23 @@ class GradientText extends StatelessWidget {
 
   final String text;
   final TextStyle? style;
+
+  /// Retained for API compatibility; no longer used for rendering.
   final Gradient gradient;
 
   @override
   Widget build(BuildContext context) {
-    return ShaderMask(
-      blendMode: BlendMode.srcIn,
-      shaderCallback: (Rect bounds) => gradient.createShader(bounds),
-      child: Text(
-        text,
-        // The shader supplies the visible color; white keeps the mask opaque.
-        style: (style ?? const TextStyle()).copyWith(color: Colors.white),
-      ),
+    return Text(
+      text,
+      style: (style ?? const TextStyle()).copyWith(color: AppColors.ink),
     );
   }
 }
 
-/// Paints an [icon] filled with a [gradient] via a [ShaderMask].
+/// Paints an [icon] in a flat solid [AppColors.ink].
+///
+/// Formerly filled the glyph with a gradient via a [ShaderMask]; the [gradient]
+/// param is retained for API compatibility but no longer affects rendering.
 ///
 /// Call sites use [Icons.auto_awesome] (sparkle) for the Gemini accent.
 class GradientIcon extends StatelessWidget {
@@ -141,19 +123,16 @@ class GradientIcon extends StatelessWidget {
 
   final IconData icon;
   final double size;
+
+  /// Retained for API compatibility; no longer used for rendering.
   final Gradient gradient;
 
   @override
   Widget build(BuildContext context) {
-    return ShaderMask(
-      blendMode: BlendMode.srcIn,
-      shaderCallback: (Rect bounds) => gradient.createShader(bounds),
-      child: Icon(
-        icon,
-        size: size,
-        // White so the gradient shader is what shows through the mask.
-        color: Colors.white,
-      ),
+    return Icon(
+      icon,
+      size: size,
+      color: AppColors.ink,
     );
   }
 }

@@ -80,21 +80,32 @@ class _StationMapBlockState extends State<StationMapBlock> {
               AppSpacing.md,
               AppSpacing.sm,
             ),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(
-                  Icons.map_outlined,
-                  size: 18,
-                  color: AppColors.teal,
+                // Small mono uppercase eyebrow flagging the block type.
+                Text(
+                  'STATIONS MAP',
+                  style: AppTextStyles.eyebrow,
                 ),
-                const SizedBox(width: AppSpacing.xs),
-                Expanded(
-                  child: Text(
-                    widget.spec.title,
-                    style: AppTextStyles.titleMd,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                const SizedBox(height: AppSpacing.xxs),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.map_outlined,
+                      size: 18,
+                      color: AppColors.ink,
+                    ),
+                    const SizedBox(width: AppSpacing.xs),
+                    Expanded(
+                      child: Text(
+                        widget.spec.title,
+                        style: AppTextStyles.titleMd,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -150,11 +161,13 @@ class _StationMapBlockState extends State<StationMapBlock> {
   }
 }
 
-/// A tappable water-drop pin tinted with a station's status colour.
+/// A tappable, monochrome ink water-drop pin carrying a station's status as a
+/// single colour accent.
 ///
-/// A soft status-coloured halo sits behind a filled teardrop pin carrying a
-/// white water-drop glyph, so the marker reads clearly against busy map tiles
-/// and its status colour is unmistakable.
+/// FLAT, editorial: a solid ink teardrop (no drop shadow) sits over a status-
+/// tinted hairline ring, with a white inset disc that holds the status-coloured
+/// water-drop glyph. Ink does the heavy lifting against busy map tiles; the
+/// status colour is the one accent so it stays unmistakable.
 class _StationDropMarker extends StatelessWidget {
   const _StationDropMarker({
     required this.color,
@@ -173,7 +186,7 @@ class _StationDropMarker extends StatelessWidget {
         alignment: Alignment.topCenter,
         clipBehavior: Clip.none,
         children: [
-          // Soft status-coloured halo for legibility on busy tiles.
+          // Status-tinted pastel-block disc + hairline ring for legibility.
           Positioned(
             top: 2,
             child: Container(
@@ -182,30 +195,24 @@ class _StationDropMarker extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: color.withValues(alpha: 0.16),
+                border: Border.all(color: color, width: 1),
               ),
             ),
           ),
-          // White-outlined teardrop filled with the status colour.
-          Icon(
+          // Flat ink teardrop pin (no shadow).
+          const Icon(
             Icons.location_on,
             size: 42,
-            color: color,
-            shadows: const [
-              Shadow(
-                color: Color(0x40000000),
-                blurRadius: 4,
-                offset: Offset(0, 2),
-              ),
-            ],
+            color: AppColors.ink,
           ),
-          // White inset disc carrying the water-drop glyph.
+          // White inset disc carrying the status-coloured water-drop glyph.
           Positioned(
             top: 7,
             child: Container(
               width: 16,
               height: 16,
               decoration: const BoxDecoration(
-                color: AppColors.card,
+                color: AppColors.canvas,
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -221,8 +228,8 @@ class _StationDropMarker extends StatelessWidget {
   }
 }
 
-/// A compact legend mapping the three station statuses to their droplet colour
-/// and Arabic label (طبيعي / تحذير / خطر).
+/// A compact legend mapping the three station statuses to their accent colour
+/// and Arabic label (طبيعي / تحذير / خطر), rendered as flat hairline chips.
 class _StatusLegend extends StatelessWidget {
   const _StatusLegend();
 
@@ -230,7 +237,12 @@ class _StatusLegend extends StatelessWidget {
   Widget build(BuildContext context) {
     return Directionality(
       textDirection: TextDirection.rtl,
-      child: Padding(
+      child: Container(
+        decoration: const BoxDecoration(
+          border: BorderDirectional(
+            top: BorderSide(color: AppColors.hairline),
+          ),
+        ),
         padding: const EdgeInsetsDirectional.fromSTEB(
           AppSpacing.md,
           AppSpacing.sm,
@@ -238,7 +250,7 @@ class _StatusLegend extends StatelessWidget {
           AppSpacing.md,
         ),
         child: Wrap(
-          spacing: AppSpacing.md,
+          spacing: AppSpacing.xs,
           runSpacing: AppSpacing.xs,
           children: const [
             _LegendItem(status: StationStatus.normal),
@@ -251,6 +263,8 @@ class _StatusLegend extends StatelessWidget {
   }
 }
 
+/// A single flat legend chip: a status-accent dot beside a mono uppercase
+/// caption label, on a soft surface with a hairline border (pill shape).
 class _LegendItem extends StatelessWidget {
   const _LegendItem({required this.status});
 
@@ -259,16 +273,37 @@ class _LegendItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Color color = AppColors.statusColor(status);
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(Icons.water_drop, size: 12, color: color),
-        const SizedBox(width: AppSpacing.xxs),
-        Text(
-          statusLabelAr(status),
-          style: AppTextStyles.caption.copyWith(color: AppColors.slate),
-        ),
-      ],
+    return Container(
+      padding: const EdgeInsetsDirectional.fromSTEB(
+        AppSpacing.xs,
+        AppSpacing.xxs,
+        AppSpacing.sm,
+        AppSpacing.xxs,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceSoft,
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+        border: Border.all(color: AppColors.hairline),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Status accent dot.
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.xs),
+          Text(
+            statusLabelAr(status),
+            style: AppTextStyles.caption,
+          ),
+        ],
+      ),
     );
   }
 }

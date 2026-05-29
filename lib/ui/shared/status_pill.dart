@@ -26,6 +26,8 @@ class StatusPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Solid status hue drives the dot glyph; the pastel-block tint carries the
+    // severity as a flat color block, and the label reads in ink mono caption.
     final Color fg = AppColors.statusColor(status);
     final Color bg = AppColors.statusBg(status);
     final String text = label ?? statusLabelAr(status);
@@ -38,6 +40,7 @@ class StatusPill extends StatelessWidget {
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(AppRadius.pill),
+        border: Border.all(color: AppColors.hairline),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -50,10 +53,10 @@ class StatusPill extends StatelessWidget {
               shape: BoxShape.circle,
             ),
           ),
-          const SizedBox(width: AppSpacing.xxs + 2),
+          const SizedBox(width: AppSpacing.xs),
           Text(
             text,
-            style: AppTextStyles.caption.copyWith(color: fg),
+            style: AppTextStyles.caption.copyWith(color: AppColors.ink),
           ),
         ],
       ),

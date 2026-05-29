@@ -3,11 +3,12 @@ import 'package:ma_water/core/design/app_colors.dart';
 import 'package:ma_water/core/design/app_radius.dart';
 import 'package:ma_water/core/design/app_spacing.dart';
 
-/// A single shimmer-ish placeholder rectangle whose opacity pulses.
+/// A single flat grayscale placeholder rectangle whose opacity pulses.
 ///
-/// Used to compose loading skeletons. The pulse is driven by an ambient
-/// [AnimationController] so a row of bars share the same animation feel without
-/// each managing its own ticker.
+/// Used to compose loading skeletons. Flat, no shadow — a hairline-soft fill
+/// pill (radius [AppRadius.sm]) that pulses via an ambient [AnimationController]
+/// so a row of bars share the same animation feel without each managing its own
+/// ticker.
 class SkeletonBar extends StatelessWidget {
   const SkeletonBar({
     super.key,
@@ -26,7 +27,7 @@ class SkeletonBar extends StatelessWidget {
   /// Current animated opacity (0..1).
   final double opacity;
 
-  /// Optional fill color; defaults to [AppColors.line].
+  /// Optional fill color; defaults to [AppColors.hairlineSoft] (grayscale).
   final Color? color;
 
   @override
@@ -37,7 +38,7 @@ class SkeletonBar extends StatelessWidget {
         width: width,
         height: height,
         decoration: BoxDecoration(
-          color: color ?? AppColors.line,
+          color: color ?? AppColors.hairlineSoft,
           borderRadius: BorderRadius.circular(AppRadius.sm),
         ),
       ),
@@ -47,9 +48,11 @@ class SkeletonBar extends StatelessWidget {
 
 /// An animated placeholder bubble shown while the assistant is "typing".
 ///
-/// Mimics an incoming assistant message: a leading brand dot and a few
-/// shimmering bars whose opacity oscillates to suggest activity. Self-contained
-/// (owns its own animation) so callers can drop it into the chat list directly.
+/// Mimics an incoming assistant (bot) message: a flat white hairline card
+/// (radius [AppRadius.lg], no shadow) holding a leading solid-ink avatar dot and
+/// a few grayscale bars whose opacity oscillates to suggest activity.
+/// Self-contained (owns its own animation) so callers can drop it into the chat
+/// list directly.
 class ChatBubbleSkeleton extends StatefulWidget {
   const ChatBubbleSkeleton({super.key});
 
@@ -93,7 +96,7 @@ class _ChatBubbleSkeletonState extends State<ChatBubbleSkeleton>
             decoration: BoxDecoration(
               color: AppColors.card,
               borderRadius: BorderRadius.circular(AppRadius.lg),
-              border: Border.all(color: AppColors.line),
+              border: Border.all(color: AppColors.hairline),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -105,7 +108,7 @@ class _ChatBubbleSkeletonState extends State<ChatBubbleSkeleton>
                     width: AppSpacing.lg,
                     height: AppSpacing.lg,
                     decoration: const BoxDecoration(
-                      color: AppColors.mint2,
+                      color: AppColors.ink,
                       shape: BoxShape.circle,
                     ),
                   ),

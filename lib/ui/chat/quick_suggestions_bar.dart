@@ -68,31 +68,35 @@ class _SuggestionChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool enabled = onTap != null;
+    // Secondary pill: flat white canvas + 1px hairline + ink text/icon.
     return Opacity(
       opacity: enabled ? 1 : 0.5,
       child: Material(
-        color: AppColors.mint,
+        color: AppColors.canvas,
         borderRadius: BorderRadius.circular(AppRadius.pill),
         child: InkWell(
           borderRadius: BorderRadius.circular(AppRadius.pill),
           onTap: onTap,
           child: Container(
             padding: const EdgeInsetsDirectional.symmetric(
-              horizontal: AppSpacing.sm,
+              horizontal: AppSpacing.md,
               vertical: AppSpacing.xs,
             ),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(AppRadius.pill),
-              border: Border.all(color: AppColors.mint2),
+              border: Border.all(color: AppColors.hairline),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(suggestion.icon, size: 16, color: AppColors.teal),
-                const SizedBox(width: AppSpacing.xxs),
+                Icon(suggestion.icon, size: 16, color: AppColors.ink),
+                const SizedBox(width: AppSpacing.xs),
                 Text(
                   suggestion.prompt,
-                  style: AppTextStyles.caption.copyWith(color: AppColors.tealDark),
+                  style: AppTextStyles.bodyMd.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.ink,
+                  ),
                 ),
               ],
             ),

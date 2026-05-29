@@ -5,10 +5,11 @@ import 'package:ma_water/core/design/app_spacing.dart';
 import 'package:ma_water/core/design/app_typography.dart';
 import 'package:ma_water/ui/genui_blocks/block_spec.dart';
 
-/// GenUI block rendering a [RankedListSpec]: a titled card with an ordered
-/// list of stations. Each row shows a 1..N rank badge, the station name, and
-/// the metric value + unit (teal). Rows are tappable and report the tapped
-/// station id via [onTapStation].
+/// GenUI block rendering a [RankedListSpec]: a flat white hairline card with an
+/// ordered list of stations. Each row shows a 1..N rank index in a small solid
+/// black circle, the station name, and the metric value + unit in ink. Rows are
+/// separated by hairline dividers, are tappable, and report the tapped station
+/// id via [onTapStation].
 class RankedListBlock extends StatelessWidget {
   final RankedListSpec spec;
   final void Function(String stationId)? onTapStation;
@@ -22,16 +23,23 @@ class RankedListBlock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      // FLAT white card: no shadow, hairline border, radius lg.
       decoration: BoxDecoration(
         color: AppColors.card,
         borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: AppColors.hairline),
       ),
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
+          // Mono uppercase eyebrow taxonomy label above the title.
+          Text(
+            'RANKING',
+            style: AppTextStyles.eyebrow,
+          ),
+          const SizedBox(height: AppSpacing.xxs),
           Text(
             spec.title,
             style: AppTextStyles.titleLg,
@@ -47,7 +55,8 @@ class RankedListBlock extends StatelessWidget {
             )
           else
             for (var i = 0; i < spec.items.length; i++) ...[
-              if (i > 0) const Divider(height: 1, color: AppColors.line),
+              if (i > 0)
+                const Divider(height: 1, thickness: 1, color: AppColors.hairline),
               _RankedRow(
                 rank: i + 1,
                 item: spec.items[i],
@@ -81,7 +90,7 @@ class _RankedRow extends StatelessWidget {
         child: Row(
           children: [
             _RankBadge(rank: rank),
-            const SizedBox(width: AppSpacing.sm),
+            const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Text(
                 item.name,
@@ -106,17 +115,18 @@ class _RankBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Rank index in a small solid black circle, white mono numeral.
     return Container(
       width: 28,
       height: 28,
       alignment: Alignment.center,
       decoration: const BoxDecoration(
-        color: AppColors.mint,
+        color: AppColors.ink,
         shape: BoxShape.circle,
       ),
       child: Text(
         '$rank',
-        style: AppTextStyles.caption.copyWith(color: AppColors.tealDark),
+        style: AppTextStyles.caption.copyWith(color: AppColors.canvas),
       ),
     );
   }
@@ -137,7 +147,7 @@ class _ValueLabel extends StatelessWidget {
       children: [
         Text(
           _formatValue(value),
-          style: AppTextStyles.metric.copyWith(color: AppColors.teal),
+          style: AppTextStyles.metric,
         ),
         if (unit.isNotEmpty) ...[
           const SizedBox(width: AppSpacing.xxs),

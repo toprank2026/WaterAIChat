@@ -7,29 +7,28 @@ import 'package:ma_water/core/design/app_typography.dart';
 import 'package:ma_water/core/utils/arabic_utils.dart';
 import 'package:ma_water/data/models/enums.dart';
 import 'package:ma_water/ui/genui_blocks/block_spec.dart';
-import 'package:ma_water/ui/shared/animated_gradient.dart';
 
 /// Generative-UI widget for a [StatisticsSpec] — a titled 2-column grid of
 /// labelled statistics for one station (e.g. current / max / min / average over
 /// a window).
 ///
-/// Renders the "Generative UI card" recipe from PRD §10.6: a white surface with
-/// a 1px [AppColors.line] border, [AppRadius.lg] corners, [AppSpacing.md]
-/// padding and the soft resting shadow from §10.5. Layout is RTL-correct
-/// (directional padding/alignment only) and every string is Arabic.
+/// Figma editorial look: a flat white surface with a 1px [AppColors.hairline]
+/// border and [AppRadius.lg] corners — no shadow, no gradient. A small mono
+/// UPPERCASE eyebrow label sits above the title; weight carries the hierarchy.
+/// Layout is RTL-correct (directional padding/alignment only) and every string
+/// is Arabic.
 ///
 /// Each tile shows:
-///  - the [StatItem.label] (caption / [AppColors.slate]),
+///  - the [StatItem.label] (mono caption),
 ///  - the big [StatItem.value] + [StatItem.unit] in [AppTextStyles.metric],
 ///  - a compact horizontal bar whose width is proportional to the value
 ///    normalized across all stats' min..max, so الحالي/الأعلى/الأدنى/المتوسط
 ///    can be compared at a glance.
 ///
-/// The primary "الحالي" tile is painted with the Gemini gradient via
-/// [GradientText] and its bar is filled with [AppColors.geminiGradient] (or the
-/// status colour when a status is present); tiles that carry a
-/// [StatItem.status] use the status foreground/background colours; the rest get
-/// a subtle mint tint and a teal bar.
+/// Tiles are flat white hairline cards. A tile that carries a [StatItem.status]
+/// is tinted with the matching pastel block ([AppColors.statusBg]) as the one
+/// allowed color block; its bar fill uses the status foreground colour. Every
+/// other bar fills with solid [AppColors.ink] over a [AppColors.hairline] track.
 ///
 /// The bars draw in once on first build via a one-shot [TweenAnimationBuilder]
 /// (no infinite animation, so the card renders under a single test pump()).
@@ -50,18 +49,12 @@ class StatisticsBlock extends StatelessWidget {
   /// station detail screen. Ignored when the spec has no station context.
   final void Function(String stationId)? onTap;
 
-  /// The Arabic label for the primary ("current") statistic, which is rendered
-  /// with the Gemini gradient.
+  /// The Arabic label for the primary ("current") statistic, which gets the
+  /// ink-weighted emphasis treatment.
   static const String _primaryLabel = 'الحالي';
 
-  /// Soft resting card shadow per PRD §10.5.
-  static const List<BoxShadow> _restingShadow = <BoxShadow>[
-    BoxShadow(
-      blurRadius: 30,
-      offset: Offset(0, 10),
-      color: Color(0x0F0D2B3E), // rgba(13,43,62,0.06)
-    ),
-  ];
+  /// Mono UPPERCASE eyebrow shown above the title (taxonomy label).
+  static const String _eyebrow = 'STATISTICS';
 
   @override
   Widget build(BuildContext context) {
@@ -75,21 +68,20 @@ class StatisticsBlock extends StatelessWidget {
         onTap: handler,
         borderRadius: BorderRadius.circular(AppRadius.lg),
         child: Ink(
+          // Flat white hairline card — no shadow, no gradient.
           decoration: BoxDecoration(
             color: AppColors.card,
             borderRadius: BorderRadius.circular(AppRadius.lg),
-            border: Border.all(color: AppColors.line),
-            boxShadow: _restingShadow,
+            border: Border.all(color: AppColors.hairline),
           ),
           padding: const EdgeInsetsDirectional.all(AppSpacing.md),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              Text(
-                spec.title,
-                style: AppTextStyles.titleMd.copyWith(color: AppColors.slate),
-              ),
+              Text(_eyebrow, style: AppTextStyles.eyebrow),
+              const SizedBox(height: AppSpacing.xxs),
+              Text(spec.title, style: AppTextStyles.titleMd),
               if (spec.stats.isNotEmpty) ...<Widget>[
                 const SizedBox(height: AppSpacing.sm),
                 _StatGrid(stats: spec.stats),
@@ -184,22 +176,17 @@ class _StatTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final StationStatus? status = stat.status;
 
-    // Background tint: status tint if present, else mint for the primary tile,
-    // else a faint sky neutral.
-    final Color background = status != null
-        ? AppColors.statusBg(status)
-        : (primary ? AppColors.mint : AppColors.sky);
-
-    // Border: status-tinted for status tiles, mint for the primary, line otherwise.
-    final Color border = status != null
-        ? AppColors.statusColor(status).withValues(alpha: 0.25)
-        : (primary ? AppColors.mint2 : AppColors.line);
+    // A status tile is tinted with its pastel block (the one allowed color
+    // block); every other tile stays flat white. Hierarchy of the primary tile
+    // comes from type weight, not from a tint.
+    final Color background =
+        status != null ? AppColors.statusBg(status) : AppColors.canvas;
 
     return DecoratedBox(
       decoration: BoxDecoration(
         color: background,
         borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: border),
+        border: Border.all(color: AppColors.hairline),
       ),
       child: Padding(
         padding: const EdgeInsetsDirectional.all(AppSpacing.sm),
@@ -209,7 +196,9 @@ class _StatTile extends StatelessWidget {
           children: <Widget>[
             Text(
               stat.label,
-              style: AppTextStyles.caption.copyWith(color: AppColors.slate),
+              // The "current" tile gets the heavier mono eyebrow weight so it
+              // reads as primary through weight, not color.
+              style: primary ? AppTextStyles.eyebrow : AppTextStyles.caption,
             ),
             const SizedBox(height: AppSpacing.xxs),
             _ValueLine(stat: stat, primary: primary, status: status),
@@ -222,14 +211,14 @@ class _StatTile extends StatelessWidget {
   }
 }
 
-/// A compact horizontal comparison bar: a rounded [AppColors.line] track with a
-/// proportional fill on the directional start (RTL: right) edge.
+/// A compact horizontal comparison bar: a rounded [AppColors.hairline] track
+/// with a proportional fill on the directional start (RTL: right) edge.
 ///
-/// The fill is the Gemini gradient for the primary "الحالي" tile (or the status
-/// colour when a status is present); every other tile gets a solid teal fill.
-/// The bar grows from 0 to [fraction] exactly once via a one-shot
-/// [TweenAnimationBuilder] — there is no repeating/infinite animation, so the
-/// whole card settles within a single test pump().
+/// The fill is solid [AppColors.ink] (or the status foreground colour when a
+/// status is present) — flat, no gradient. The bar grows from 0 to [fraction]
+/// exactly once via a one-shot [TweenAnimationBuilder] — there is no
+/// repeating/infinite animation, so the whole card settles within a single
+/// test pump().
 class _StatBar extends StatelessWidget {
   const _StatBar({
     required this.fraction,
@@ -249,12 +238,10 @@ class _StatBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final double target = fraction.clamp(0.0, 1.0);
 
-    // Solid fill colour for non-gradient bars: status colour when present, else
-    // teal for the comparison bars.
-    final Color solidFill =
-        status != null ? AppColors.statusColor(status!) : AppColors.teal;
-    // The primary tile uses the Gemini gradient unless it carries a status.
-    final bool useGradient = primary && status == null;
+    // Flat solid fill: status colour when present, else solid ink. The primary
+    // tile reads as primary through its value weight, not a colored bar.
+    final Color fill =
+        status != null ? AppColors.statusColor(status!) : AppColors.ink;
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(AppRadius.pill),
@@ -262,7 +249,7 @@ class _StatBar extends StatelessWidget {
         height: _height,
         width: double.infinity,
         child: DecoratedBox(
-          decoration: const BoxDecoration(color: AppColors.line),
+          decoration: const BoxDecoration(color: AppColors.hairline),
           child: TweenAnimationBuilder<double>(
             tween: Tween<double>(begin: 0, end: target),
             duration: const Duration(milliseconds: 650),
@@ -275,8 +262,7 @@ class _StatBar extends StatelessWidget {
                   heightFactor: 1,
                   child: DecoratedBox(
                     decoration: BoxDecoration(
-                      color: useGradient ? null : solidFill,
-                      gradient: useGradient ? AppColors.geminiGradient : null,
+                      color: fill,
                       borderRadius: BorderRadius.circular(AppRadius.pill),
                     ),
                   ),
@@ -290,8 +276,8 @@ class _StatBar extends StatelessWidget {
   }
 }
 
-/// The big value + unit line. Uses [GradientText] for the primary tile and the
-/// status colour otherwise.
+/// The big value + unit line. Renders flat solid ink (the status colour when a
+/// status is present); the primary tile is distinguished by metric weight.
 class _ValueLine extends StatelessWidget {
   const _ValueLine({
     required this.stat,
@@ -317,14 +303,12 @@ class _ValueLine extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.baseline,
       children: <Widget>[
         Flexible(
-          child: primary
-              ? GradientText(valueText, style: valueStyle)
-              : Text(
-                  valueText,
-                  style: valueStyle.copyWith(color: color),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
+          child: Text(
+            valueText,
+            style: valueStyle.copyWith(color: color),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
         if (_hasUnit) ...<Widget>[
           const SizedBox(width: AppSpacing.xxs),

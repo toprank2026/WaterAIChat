@@ -6,8 +6,10 @@ import 'package:ma_water/core/design/app_spacing.dart';
 /// Wraps [child] in a continuously sweeping diagonal "light" highlight.
 ///
 /// Drives a looping [AnimationController] that slides a [LinearGradient] across
-/// the child via a [ShaderMask] (base [AppColors.line], a bright
-/// white/[AppColors.mint] highlight band, then back to base). Compose loading
+/// the child via a [ShaderMask]. The sweep is strictly monochrome — a soft
+/// [AppColors.surfaceSoft] base with a slightly brighter (still grayscale)
+/// canvas/[AppColors.hairlineSoft] highlight band, then back to base — so it
+/// never introduces color, matching the flat editorial system. Compose loading
 /// placeholders by wrapping grey [ShimmerBox]es (or whole skeleton presets) in
 /// a single [Shimmer] so they share one smooth, synchronized sweep.
 ///
@@ -62,11 +64,13 @@ class _ShimmerState extends State<Shimmer>
             return LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
+              // Grayscale sweep only: soft base -> faint canvas highlight ->
+              // back to base. No pastel, no color.
               colors: const <Color>[
-                AppColors.line,
-                Colors.white,
-                AppColors.mint,
-                AppColors.line,
+                AppColors.surfaceSoft,
+                AppColors.hairlineSoft,
+                AppColors.canvas,
+                AppColors.surfaceSoft,
               ],
               stops: <double>[
                 (shift - 0.30).clamp(0.0, 1.0),
@@ -86,8 +90,9 @@ class _ShimmerState extends State<Shimmer>
 
 /// A single rounded shimmering block — the atom of every skeleton preset.
 ///
-/// Renders a grey ([AppColors.line]) rounded box wrapped in [Shimmer]. Pass an
-/// explicit [width] or leave it null to fill the available horizontal space.
+/// Renders a flat grey ([AppColors.surfaceSoft]) rounded box wrapped in
+/// [Shimmer]. Pass an explicit [width] or leave it null to fill the available
+/// horizontal space.
 class ShimmerBox extends StatelessWidget {
   const ShimmerBox({
     this.width,
@@ -112,7 +117,7 @@ class ShimmerBox extends StatelessWidget {
         width: width,
         height: height,
         decoration: BoxDecoration(
-          color: AppColors.line,
+          color: AppColors.surfaceSoft,
           borderRadius: radius ?? BorderRadius.circular(AppRadius.sm),
         ),
       ),
@@ -120,21 +125,14 @@ class ShimmerBox extends StatelessWidget {
   }
 }
 
-/// Shared GenUI-card chrome for the skeleton presets: white surface, 1px
-/// [AppColors.line] border, [AppRadius.lg] corners, [AppSpacing.md] padding and
-/// the soft resting shadow used across the generative-UI blocks (PRD §10.5/10.6).
+/// Shared GenUI-card chrome for the skeleton presets: flat white surface, a
+/// single 1px [AppColors.hairline] border and [AppRadius.lg] corners with
+/// [AppSpacing.md] padding. No shadow — depth comes from the hairline alone,
+/// matching the flat editorial GenUI blocks.
 class _SkeletonCard extends StatelessWidget {
   const _SkeletonCard({required this.child});
 
   final Widget child;
-
-  static const List<BoxShadow> _restingShadow = <BoxShadow>[
-    BoxShadow(
-      blurRadius: 30,
-      offset: Offset(0, 10),
-      color: Color(0x0F0D2B3E), // rgba(13,43,62,0.06)
-    ),
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -142,8 +140,7 @@ class _SkeletonCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.card,
         borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: AppColors.line),
-        boxShadow: _restingShadow,
+        border: Border.all(color: AppColors.hairline),
       ),
       padding: const EdgeInsetsDirectional.all(AppSpacing.md),
       child: child,

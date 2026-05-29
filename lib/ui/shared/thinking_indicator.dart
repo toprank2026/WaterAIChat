@@ -5,12 +5,13 @@ import 'package:ma_water/core/design/app_spacing.dart';
 import 'package:ma_water/core/design/app_typography.dart';
 import 'package:ma_water/ui/shared/animated_gradient.dart';
 
-/// A Gemini-style "thinking" row shown while the assistant is reasoning.
+/// A "thinking" row shown while the assistant is reasoning.
 ///
-/// Layout (RTL): a sparkle [GradientIcon], three pulsing gradient dots, then the
-/// Arabic label "يفكّر...". The dots stagger their scale/opacity on a single
-/// looping ticker, giving a smooth shimmering pulse. Self-contained — owns and
-/// disposes its own animation controller.
+/// Layout (RTL): a solid-ink sparkle [GradientIcon], three pulsing ink dots,
+/// then the Arabic label "يفكّر...". Under the monochrome editorial system the
+/// row is a flat white hairline pill — no shadow, no gradient. The dots stagger
+/// their scale/opacity on a single looping ticker, giving a smooth breathing
+/// pulse in pure ink. Self-contained — owns and disposes its own controller.
 class ThinkingIndicator extends StatefulWidget {
   const ThinkingIndicator({super.key});
 
@@ -57,14 +58,16 @@ class _ThinkingIndicatorState extends State<ThinkingIndicator>
           horizontal: AppSpacing.sm,
           vertical: AppSpacing.xs,
         ),
+        // Flat white bot card: hairline border, pill shape, no shadow.
         decoration: BoxDecoration(
           color: AppColors.card,
           borderRadius: BorderRadius.circular(AppRadius.pill),
-          border: Border.all(color: AppColors.line),
+          border: Border.all(color: AppColors.hairline),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Sparkle renders solid ink (kit is now flat).
             const GradientIcon(icon: Icons.auto_awesome, size: 16),
             const SizedBox(width: AppSpacing.xs),
             AnimatedBuilder(
@@ -80,10 +83,10 @@ class _ThinkingIndicatorState extends State<ThinkingIndicator>
                         end: AppSpacing.xxs,
                       ),
                       child: Opacity(
-                        opacity: 0.4 + 0.6 * p,
+                        opacity: 0.35 + 0.65 * p,
                         child: Transform.scale(
                           scale: 0.7 + 0.5 * p,
-                          child: const _GradientDot(),
+                          child: const _InkDot(),
                         ),
                       ),
                     );
@@ -92,9 +95,10 @@ class _ThinkingIndicatorState extends State<ThinkingIndicator>
               },
             ),
             const SizedBox(width: AppSpacing.xs),
+            // Mono uppercase-style caption label; ink, weight carries it.
             Text(
               'يفكّر...',
-              style: AppTextStyles.caption.copyWith(color: AppColors.slate),
+              style: AppTextStyles.caption.copyWith(color: AppColors.ink),
             ),
           ],
         ),
@@ -103,22 +107,20 @@ class _ThinkingIndicatorState extends State<ThinkingIndicator>
   }
 }
 
-/// A small circular dot filled with the flowing gemini gradient.
-class _GradientDot extends StatelessWidget {
-  const _GradientDot();
+/// A small flat circular dot filled with solid [AppColors.ink].
+class _InkDot extends StatelessWidget {
+  const _InkDot();
 
   static const double _size = 7;
 
   @override
   Widget build(BuildContext context) {
-    return ClipOval(
-      child: SizedBox(
-        width: _size,
-        height: _size,
-        child: AnimatedGradient(
-          duration: const Duration(seconds: 4),
-          colors: AppColors.geminiColors,
-        ),
+    return Container(
+      width: _size,
+      height: _size,
+      decoration: const BoxDecoration(
+        color: AppColors.ink,
+        shape: BoxShape.circle,
       ),
     );
   }

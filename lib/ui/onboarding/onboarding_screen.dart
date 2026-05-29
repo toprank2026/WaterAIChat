@@ -5,15 +5,16 @@ import 'package:ma_water/core/design/app_colors.dart';
 import 'package:ma_water/core/design/app_radius.dart';
 import 'package:ma_water/core/design/app_spacing.dart';
 import 'package:ma_water/core/design/app_typography.dart';
+import 'package:ma_water/core/design/color_block.dart';
 import 'package:ma_water/ui/chat/chat_screen.dart';
-import 'package:ma_water/ui/shared/animated_gradient.dart';
 
 /// First-run explainer for "Mā".
 ///
-/// A clean white screen led by a Gemini-style gradient sparkle header, three
-/// feature bullets, a faux on-device model "download" progress bar (no real
-/// download happens in v1), and an animated-gradient "ابدأ" button that opens
-/// [ChatScreen].
+/// A clean white editorial canvas: a small mono uppercase eyebrow over an ink
+/// display title, three oversized pastel **feature blocks** (lime / cream /
+/// lilac — the system's signature color-block depth device), a flat hairline
+/// faux on-device model "download" note (no real download happens in v1), and
+/// a black **pill** "ابدأ" CTA that opens [ChatScreen].
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
 
@@ -67,35 +68,41 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: AppSpacing.xl),
-              const Center(child: _GradientHeader()),
-              const SizedBox(height: AppSpacing.xl),
-              Center(
-                child: GradientText(
-                  'مرحبًا بك في مياه',
-                  style: AppTextStyles.displayMd,
-                  gradient: AppColors.geminiGradient,
-                ),
+              // Mono uppercase eyebrow — taxonomy label above the title.
+              Text(
+                'مياه · MĀ',
+                textAlign: TextAlign.start,
+                style: AppTextStyles.eyebrow,
               ),
               const SizedBox(height: AppSpacing.sm),
               Text(
+                'مرحبًا بك في مياه',
+                textAlign: TextAlign.start,
+                style: AppTextStyles.displayMd,
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
                 'مساعدك الذكي لمتابعة مستويات المياه في العراق',
-                textAlign: TextAlign.center,
-                style: AppTextStyles.bodyLg.copyWith(color: AppColors.slate),
+                textAlign: TextAlign.start,
+                style: AppTextStyles.bodyLg,
               ),
               const SizedBox(height: AppSpacing.xl),
               const _FeatureRow(
                 icon: Icons.chat_bubble_outline,
                 text: 'اسأل بالعربية',
+                color: AppColors.blockLime,
               ),
-              const SizedBox(height: AppSpacing.md),
+              const SizedBox(height: AppSpacing.sm),
               const _FeatureRow(
                 icon: Icons.insert_chart_outlined,
                 text: 'احصل على رسوم بيانية تفاعلية',
+                color: AppColors.blockCream,
               ),
-              const SizedBox(height: AppSpacing.md),
+              const SizedBox(height: AppSpacing.sm),
               const _FeatureRow(
                 icon: Icons.cloud_off_outlined,
                 text: 'يعمل دون إنترنت',
+                color: AppColors.blockLilac,
               ),
               const Spacer(),
               _DownloadNote(progress: _progress, ready: _ready),
@@ -110,64 +117,49 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 }
 
-/// The hero header: a Gemini-style gradient sparkle inside a softly tinted,
-/// rounded badge.
-class _GradientHeader extends StatelessWidget {
-  const _GradientHeader();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: AppSpacing.xxl + AppSpacing.lg,
-      height: AppSpacing.xxl + AppSpacing.lg,
-      decoration: BoxDecoration(
-        color: AppColors.mint,
-        borderRadius: BorderRadius.circular(AppRadius.xl),
-      ),
-      child: const Center(
-        child: GradientIcon(
-          icon: Icons.auto_awesome,
-          size: AppSpacing.xl,
-          gradient: AppColors.geminiGradient,
-        ),
-      ),
-    );
-  }
-}
-
-/// A single feature bullet: a tinted leading icon followed by Arabic copy.
+/// A single feature bullet rendered as a flat **pastel color block** (the
+/// system's depth device): a solid-ink leading icon followed by Arabic copy on
+/// a saturated panel. No shadow, no gradient — one [AppColors.block*] per row.
 class _FeatureRow extends StatelessWidget {
-  const _FeatureRow({required this.icon, required this.text});
+  const _FeatureRow({
+    required this.icon,
+    required this.text,
+    this.color = AppColors.blockLime,
+  });
 
   final IconData icon;
   final String text;
 
+  /// The pastel panel background. Use an [AppColors.block*] token.
+  final Color color;
+
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: AppSpacing.xxl,
-          height: AppSpacing.xxl,
-          decoration: BoxDecoration(
-            color: AppColors.mint,
-            borderRadius: BorderRadius.circular(AppRadius.md),
+    return ColorBlock(
+      color: color,
+      radius: AppRadius.lg,
+      padding: const EdgeInsetsDirectional.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.md,
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: AppColors.ink, size: AppSpacing.lg),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Text(
+              text,
+              style: AppTextStyles.titleMd,
+            ),
           ),
-          child: Icon(icon, color: AppColors.teal, size: AppSpacing.lg),
-        ),
-        const SizedBox(width: AppSpacing.md),
-        Expanded(
-          child: Text(
-            text,
-            style: AppTextStyles.titleMd,
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
 
-/// The faux model-download status: a label plus a [LinearProgressIndicator].
+/// The faux model-download status: a small status row plus a flat hairline
+/// progress track (ink fill on a hairline ground — no gradient, no shadow).
 class _DownloadNote extends StatelessWidget {
   const _DownloadNote({required this.progress, required this.ready});
 
@@ -184,14 +176,14 @@ class _DownloadNote extends StatelessWidget {
             Icon(
               ready ? Icons.check_circle_outline : Icons.download_outlined,
               size: AppSpacing.md,
-              color: ready ? AppColors.ok : AppColors.slate,
+              color: ready ? AppColors.ok : AppColors.ink,
             ),
             const SizedBox(width: AppSpacing.xs),
             Expanded(
               child: Text(
                 ready ? 'النموذج جاهز للعمل' : 'جارٍ تجهيز النموذج على جهازك…',
                 style: AppTextStyles.caption.copyWith(
-                  color: ready ? AppColors.ok : AppColors.slate,
+                  color: ready ? AppColors.ok : AppColors.ink,
                 ),
               ),
             ),
@@ -203,8 +195,10 @@ class _DownloadNote extends StatelessWidget {
           child: LinearProgressIndicator(
             value: progress,
             minHeight: AppSpacing.xs,
-            backgroundColor: AppColors.line,
-            valueColor: const AlwaysStoppedAnimation<Color>(AppColors.teal),
+            backgroundColor: AppColors.hairline,
+            valueColor: AlwaysStoppedAnimation<Color>(
+              ready ? AppColors.ok : AppColors.ink,
+            ),
           ),
         ),
       ],
@@ -212,8 +206,8 @@ class _DownloadNote extends StatelessWidget {
   }
 }
 
-/// Animated-gradient call-to-action button. Disabled (dimmed) until the model
-/// is ready.
+/// Black **pill** call-to-action (primary CTA = ink fill + white text).
+/// Dimmed and inert until the model is ready.
 class _StartButton extends StatelessWidget {
   const _StartButton({required this.enabled, required this.onPressed});
 
@@ -224,28 +218,22 @@ class _StartButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final BorderRadius radius = BorderRadius.circular(AppRadius.pill);
     return Opacity(
-      opacity: enabled ? 1 : 0.5,
-      child: ClipRRect(
+      opacity: enabled ? 1 : 0.4,
+      child: Material(
+        color: AppColors.ink,
         borderRadius: radius,
-        child: AnimatedGradient(
-          colors: AppColors.geminiColors,
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
           borderRadius: radius,
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: radius,
-              onTap: enabled ? onPressed : null,
-              child: Padding(
-                padding: const EdgeInsetsDirectional.symmetric(
-                  vertical: AppSpacing.md,
-                ),
-                child: Center(
-                  child: Text(
-                    'ابدأ',
-                    style:
-                        AppTextStyles.titleLg.copyWith(color: AppColors.card),
-                  ),
-                ),
+          onTap: enabled ? onPressed : null,
+          child: Padding(
+            padding: const EdgeInsetsDirectional.symmetric(
+              vertical: AppSpacing.md,
+            ),
+            child: Center(
+              child: Text(
+                'ابدأ',
+                style: AppTextStyles.titleLg.copyWith(color: AppColors.canvas),
               ),
             ),
           ),

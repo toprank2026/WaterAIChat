@@ -15,13 +15,16 @@ class SummaryTextBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Flat white hairline card (Figma elevation level 1): pure canvas surface,
+    // a single 1px hairline border for depth — no shadow, no gradient. Body set
+    // in bodyLg ink; weight (not gray) carries hierarchy.
     return Container(
       width: double.infinity,
-      padding: const EdgeInsetsDirectional.all(AppSpacing.md),
+      padding: const EdgeInsetsDirectional.all(AppSpacing.lg),
       decoration: BoxDecoration(
         color: AppColors.card,
         borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: AppColors.hairline, width: AppSpacing.hair),
       ),
       child: Text(
         spec.text,
