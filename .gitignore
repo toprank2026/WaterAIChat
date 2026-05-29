@@ -6,9 +6,9 @@
 build/
 .flutter-plugins
 .flutter-plugins-dependencies
-.metadata
-pubspec.lock
 .fvm/
+
+# pubspec.lock IS committed for applications (reproducible builds)
 
 # Generated files
 *.g.dart

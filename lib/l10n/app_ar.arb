@@ -1,0 +1,83 @@
+{
+  "@@locale": "ar",
+
+  "appTitle": "مياه",
+  "@appTitle": {
+    "description": "اسم التطبيق الظاهر في شريط العنوان والشاشة الافتتاحية."
+  },
+
+  "appTagline": "مساعد ذكي لمراقبة مستوى المياه في العراق",
+  "@appTagline": {
+    "description": "وصف موجز للتطبيق يظهر في شاشة البداية."
+  },
+
+  "chatHint": "اسأل عن مستوى المياه...",
+  "@chatHint": {
+    "description": "النص الإرشادي داخل حقل إدخال الرسائل."
+  },
+
+  "send": "إرسال",
+  "@send": {
+    "description": "زر إرسال الرسالة."
+  },
+
+  "alerts": "التنبيهات",
+  "@alerts": {
+    "description": "عنوان قائمة التنبيهات."
+  },
+
+  "stations": "المحطات",
+  "@stations": {
+    "description": "عنوان قائمة المحطات."
+  },
+
+  "stationDetail": "تفاصيل المحطة",
+  "@stationDetail": {
+    "description": "عنوان شاشة تفاصيل المحطة."
+  },
+
+  "settings": "الإعدادات",
+  "@settings": {
+    "description": "عنوان شاشة الإعدادات."
+  },
+
+  "waterLevel": "مستوى الماء",
+  "@waterLevel": {
+    "description": "تسمية قيمة مستوى الماء."
+  },
+
+  "meterUnit": "م",
+  "@meterUnit": {
+    "description": "اختصار وحدة المتر."
+  },
+
+  "statusNormal": "طبيعي",
+  "@statusNormal": {
+    "description": "حالة المحطة الطبيعية."
+  },
+
+  "statusWarning": "تحذير",
+  "@statusWarning": {
+    "description": "حالة المحطة التحذيرية."
+  },
+
+  "statusCritical": "حرج",
+  "@statusCritical": {
+    "description": "حالة المحطة الحرجة."
+  },
+
+  "emptyChatTitle": "مرحباً بك في مياه",
+  "@emptyChatTitle": {
+    "description": "عنوان الحالة الفارغة عند فتح المحادثة لأول مرة."
+  },
+
+  "emptyChatBody": "اسأل عن مستوى المياه في أي محطة أو قارن بين المحطات.",
+  "@emptyChatBody": {
+    "description": "نص الحالة الفارغة للمحادثة."
+  },
+
+  "loading": "جارٍ التحميل...",
+  "@loading": {
+    "description": "نص أثناء انتظار رد المساعد."
+  }
+}
