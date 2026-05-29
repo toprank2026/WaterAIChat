@@ -20,11 +20,19 @@ import 'package:ma_water/ui/shared/animated_gradient.dart';
 ///
 /// Each tile shows:
 ///  - the [StatItem.label] (caption / [AppColors.slate]),
-///  - the big [StatItem.value] + [StatItem.unit] in [AppTextStyles.metric].
+///  - the big [StatItem.value] + [StatItem.unit] in [AppTextStyles.metric],
+///  - a compact horizontal bar whose width is proportional to the value
+///    normalized across all stats' min..max, so الحالي/الأعلى/الأدنى/المتوسط
+///    can be compared at a glance.
 ///
 /// The primary "الحالي" tile is painted with the Gemini gradient via
-/// [GradientText]; tiles that carry a [StatItem.status] use the status
-/// foreground/background colours; the rest get a subtle mint tint.
+/// [GradientText] and its bar is filled with [AppColors.geminiGradient] (or the
+/// status colour when a status is present); tiles that carry a
+/// [StatItem.status] use the status foreground/background colours; the rest get
+/// a subtle mint tint and a teal bar.
+///
+/// The bars draw in once on first build via a one-shot [TweenAnimationBuilder]
+/// (no infinite animation, so the card renders under a single test pump()).
 ///
 /// The whole card is tappable when [onTap] is provided and the spec carries a
 /// `stationId` (e.g. to drill into the station detail screen).
@@ -112,6 +120,12 @@ class _StatGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const double gap = AppSpacing.xs;
+    // The value range shared by every bar so they compare on one scale.
+    final double minValue =
+        stats.map((s) => s.value).reduce((a, b) => a < b ? a : b);
+    final double maxValue =
+        stats.map((s) => s.value).reduce((a, b) => a > b ? a : b);
+
     return LayoutBuilder(
       builder: (context, constraints) {
         // Two columns with a single gap between them.
@@ -126,6 +140,7 @@ class _StatGrid extends StatelessWidget {
                 child: _StatTile(
                   stat: stat,
                   primary: _isPrimary(stat.label),
+                  fraction: _fraction(stat.value, minValue, maxValue),
                 ),
               ),
           ],
@@ -137,15 +152,33 @@ class _StatGrid extends StatelessWidget {
   /// The "current" tile gets gradient treatment.
   bool _isPrimary(String label) =>
       label.trim() == StatisticsBlock._primaryLabel;
+
+  /// Maps [value] onto a 0.08..1.0 fill fraction across the [min]..[max] range
+  /// shared by all stats. When every value is equal (a flat range) bars are
+  /// drawn full so the tiles still read as "equal". A small floor keeps even
+  /// the minimum value visible as a sliver rather than an empty track.
+  double _fraction(double value, double min, double max) {
+    final double span = max - min;
+    if (span <= 0) return 1.0;
+    final double t = (value - min) / span;
+    return 0.08 + 0.92 * t.clamp(0.0, 1.0);
+  }
 }
 
 /// A single statistic tile: label on top, big value + unit below, on a subtle
 /// tinted/gradient background.
 class _StatTile extends StatelessWidget {
-  const _StatTile({required this.stat, required this.primary});
+  const _StatTile({
+    required this.stat,
+    required this.primary,
+    required this.fraction,
+  });
 
   final StatItem stat;
   final bool primary;
+
+  /// The bar's target fill fraction (0..1) normalized across all stats.
+  final double fraction;
 
   @override
   Widget build(BuildContext context) {
@@ -180,7 +213,77 @@ class _StatTile extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.xxs),
             _ValueLine(stat: stat, primary: primary, status: status),
+            const SizedBox(height: AppSpacing.xs),
+            _StatBar(fraction: fraction, primary: primary, status: status),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A compact horizontal comparison bar: a rounded [AppColors.line] track with a
+/// proportional fill on the directional start (RTL: right) edge.
+///
+/// The fill is the Gemini gradient for the primary "الحالي" tile (or the status
+/// colour when a status is present); every other tile gets a solid teal fill.
+/// The bar grows from 0 to [fraction] exactly once via a one-shot
+/// [TweenAnimationBuilder] — there is no repeating/infinite animation, so the
+/// whole card settles within a single test pump().
+class _StatBar extends StatelessWidget {
+  const _StatBar({
+    required this.fraction,
+    required this.primary,
+    required this.status,
+  });
+
+  /// Target fill fraction in 0..1.
+  final double fraction;
+  final bool primary;
+  final StationStatus? status;
+
+  /// Track height — slim so it reads as an accent under the value, not a chart.
+  static const double _height = 6;
+
+  @override
+  Widget build(BuildContext context) {
+    final double target = fraction.clamp(0.0, 1.0);
+
+    // Solid fill colour for non-gradient bars: status colour when present, else
+    // teal for the comparison bars.
+    final Color solidFill =
+        status != null ? AppColors.statusColor(status!) : AppColors.teal;
+    // The primary tile uses the Gemini gradient unless it carries a status.
+    final bool useGradient = primary && status == null;
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(AppRadius.pill),
+      child: SizedBox(
+        height: _height,
+        width: double.infinity,
+        child: DecoratedBox(
+          decoration: const BoxDecoration(color: AppColors.line),
+          child: TweenAnimationBuilder<double>(
+            tween: Tween<double>(begin: 0, end: target),
+            duration: const Duration(milliseconds: 650),
+            curve: Curves.easeOutCubic,
+            builder: (context, value, _) {
+              return Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: FractionallySizedBox(
+                  widthFactor: value,
+                  heightFactor: 1,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: useGradient ? null : solidFill,
+                      gradient: useGradient ? AppColors.geminiGradient : null,
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
         ),
       ),
     );

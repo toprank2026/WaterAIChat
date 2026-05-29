@@ -214,6 +214,53 @@ class BlockBuilder {
     );
   }
 
+  /// Maximum number of [StationListItem]s embedded in a [StationListSpec]. The
+  /// `count` field still reflects the true total even when the list is capped,
+  /// keeping the card fast for the ~100-station fleet.
+  static const int _stationListCap = 100;
+
+  /// Builds a [StationListSpec] directory of the stations matching [filter].
+  ///
+  /// When [filter] is non-empty, stations are kept when their Arabic name,
+  /// water body, or governorate contains it (normalized match). `count` is the
+  /// true number of matching stations; `items` are capped at [_stationListCap]
+  /// for display. Per-item status is intentionally omitted (left `null`) — a
+  /// live level lookup per station would be too heavy for ~100 stations.
+  Future<BlockSpec> stationList({String? filter}) async {
+    final all = await tools.repo.getStations();
+
+    final query = (filter ?? '').trim();
+    final List<Station> matched;
+    if (query.isEmpty) {
+      matched = all;
+    } else {
+      final q = _normalize(query);
+      matched = all.where((s) {
+        return _normalize(s.nameAr).contains(q) ||
+            _normalize(s.waterBodyAr).contains(q) ||
+            _normalize(s.governorateAr).contains(q);
+      }).toList();
+    }
+
+    final items = matched
+        .take(_stationListCap)
+        .map((s) => StationListItem(
+              stationId: s.id,
+              name: s.nameAr,
+              waterBody: s.waterBodyAr,
+              governorate: s.governorateAr,
+              status: null,
+            ))
+        .toList();
+
+    final title = query.isEmpty ? 'المحطات' : 'محطات $query';
+    return StationListSpec(
+      title: title,
+      count: matched.length,
+      items: items,
+    );
+  }
+
   /// Builds a [StationMapSpec] with a marker per station (status from its base
   /// level relative to thresholds).
   Future<BlockSpec> map() async {

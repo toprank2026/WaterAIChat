@@ -25,6 +25,8 @@ sealed class BlockSpec {
         return MultiLineChartSpec.fromJson(json);
       case 'ranked_list':
         return RankedListSpec.fromJson(json);
+      case 'station_list':
+        return StationListSpec.fromJson(json);
       case 'station_map':
         return StationMapSpec.fromJson(json);
       case 'alert_card':
@@ -144,6 +146,38 @@ class StatItem {
       label: _parseString(json['label']),
       value: _parseDouble(json['value']),
       unit: _parseString(json['unit']),
+      status: _parseNullableStationStatus(json['status']),
+    );
+  }
+}
+
+/// An entry in a station directory list:
+/// `{"station_id": str, "name": str, "water_body": str?, "governorate": str?,
+///   "status": "normal|warning|danger"?}`.
+///
+/// [waterBody], [governorate], and [status] are all optional: the AI may emit a
+/// bare id/name pair when richer metadata is unavailable.
+class StationListItem {
+  final String stationId;
+  final String name;
+  final String? waterBody;
+  final String? governorate;
+  final StationStatus? status;
+
+  const StationListItem({
+    required this.stationId,
+    required this.name,
+    this.waterBody,
+    this.governorate,
+    this.status,
+  });
+
+  factory StationListItem.fromJson(Map<String, dynamic> json) {
+    return StationListItem(
+      stationId: _parseString(json['station_id']),
+      name: _parseString(json['name']),
+      waterBody: _parseNullableString(json['water_body']),
+      governorate: _parseNullableString(json['governorate']),
       status: _parseNullableStationStatus(json['status']),
     );
   }
@@ -290,6 +324,37 @@ class RankedListSpec extends BlockSpec {
   }
 }
 
+/// `station_list` — a titled directory of stations with optional water body,
+/// governorate, and status per entry. [count] is the total number of matching
+/// stations (which may exceed `items.length` when the list is truncated for
+/// display).
+class StationListSpec extends BlockSpec {
+  final String title;
+  final int count;
+  final List<StationListItem> items;
+
+  const StationListSpec({
+    required this.title,
+    required this.count,
+    required this.items,
+  });
+
+  factory StationListSpec.fromJson(Map<String, dynamic> json) {
+    final raw = json['items'];
+    final items = raw is List
+        ? raw
+            .whereType<Map>()
+            .map((e) => StationListItem.fromJson(Map<String, dynamic>.from(e)))
+            .toList()
+        : <StationListItem>[];
+    return StationListSpec(
+      title: _parseString(json['title']),
+      count: _parseInt(json['count']),
+      items: items,
+    );
+  }
+}
+
 /// `station_map` — a set of geo markers with status colour.
 class StationMapSpec extends BlockSpec {
   final String title;
@@ -380,6 +445,13 @@ double? _parseNullableDouble(Object? value) {
   if (value is num) return value.toDouble();
   if (value is String) return double.tryParse(value);
   return null;
+}
+
+int _parseInt(Object? value) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  if (value is String) return int.tryParse(value) ?? 0;
+  return 0;
 }
 
 DateTime _parseDate(Object? value) {

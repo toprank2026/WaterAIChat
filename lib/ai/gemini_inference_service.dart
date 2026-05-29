@@ -119,6 +119,9 @@ class GeminiInferenceService implements InferenceService {
       case 'ranked_list':
         return _blocks.rank(count: count, order: order);
 
+      case 'station_list':
+        return _blocks.stationList(filter: summaryText?.trim());
+
       case 'station_map':
         return _blocks.map();
 
@@ -176,6 +179,8 @@ class GeminiInferenceService implements InferenceService {
         return 'عرضتُ مقارنة: ${block.title}.';
       case RankedListSpec():
         return 'عرضتُ قائمة مرتّبة: ${block.title}.';
+      case StationListSpec():
+        return 'عرضتُ قائمة المحطات: ${block.title}.';
       case StationMapSpec():
         return 'عرضتُ خريطة المحطات.';
       case AlertCardSpec():

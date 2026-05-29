@@ -5,6 +5,7 @@ import 'package:ma_water/ui/genui_blocks/line_chart_block.dart';
 import 'package:ma_water/ui/genui_blocks/multi_line_chart_block.dart';
 import 'package:ma_water/ui/genui_blocks/ranked_list_block.dart';
 import 'package:ma_water/ui/genui_blocks/stat_card_block.dart';
+import 'package:ma_water/ui/genui_blocks/station_list_block.dart';
 import 'package:ma_water/ui/genui_blocks/station_map_block.dart';
 import 'package:ma_water/ui/genui_blocks/statistics_block.dart';
 import 'package:ma_water/ui/genui_blocks/summary_text_block.dart';
@@ -16,16 +17,26 @@ import 'package:ma_water/ui/genui_blocks/summary_text_block.dart';
 /// Station-aware blocks (stat card, alert, ranked list, map) forward taps
 /// through [onTapStation] so the caller can open the station-detail screen.
 /// Blocks that have no station context (charts, summary text) ignore it.
+///
+/// The station-list block additionally forwards a row tap through
+/// [onAskStation] so the caller can continue the chat about the selected
+/// station (by its name).
 class BlockRenderer extends StatelessWidget {
   final BlockSpec spec;
 
-  /// Invoked with a `stationId` when the user taps a station inside a block.
+  /// Invoked with a `stationId` when the user taps a station inside a block
+  /// (or its open/detail affordance) to open the station-detail screen.
   final void Function(String stationId)? onTapStation;
+
+  /// Invoked with a station `name` when the user selects a station row in the
+  /// station-list block, to continue the chat about that station.
+  final void Function(String stationName)? onAskStation;
 
   const BlockRenderer({
     super.key,
     required this.spec,
     this.onTapStation,
+    this.onAskStation,
   });
 
   @override
@@ -42,6 +53,12 @@ class BlockRenderer extends StatelessWidget {
         return MultiLineChartBlock(spec: spec);
       case RankedListSpec():
         return RankedListBlock(spec: spec, onTapStation: onTapStation);
+      case StationListSpec():
+        return StationListBlock(
+          spec: spec,
+          onAskStation: onAskStation,
+          onOpen: onTapStation,
+        );
       case StationMapSpec():
         return StationMapBlock(spec: spec, onTapMarker: onTapStation);
       case AlertCardSpec():

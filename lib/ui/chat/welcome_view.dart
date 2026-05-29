@@ -45,8 +45,12 @@ class WelcomeView extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: AppSpacing.xl),
-          // Sparkle accent — the Gemini "generative" cue.
-          const GradientIcon(icon: Icons.auto_awesome, size: AppSpacing.xxl),
+          // Sparkle accent — the Gemini "generative" cue, full-spectrum rainbow.
+          const GradientIcon(
+            icon: Icons.auto_awesome,
+            size: AppSpacing.xxl,
+            gradient: AppColors.rainbowGradient,
+          ),
           const SizedBox(height: AppSpacing.lg),
           GradientText(
             'مرحباً 👋',

@@ -6,6 +6,7 @@ import 'package:ma_water/ui/genui_blocks/line_chart_block.dart';
 import 'package:ma_water/ui/genui_blocks/multi_line_chart_block.dart';
 import 'package:ma_water/ui/genui_blocks/ranked_list_block.dart';
 import 'package:ma_water/ui/genui_blocks/stat_card_block.dart';
+import 'package:ma_water/ui/genui_blocks/station_list_block.dart';
 import 'package:ma_water/ui/genui_blocks/station_map_block.dart';
 import 'package:ma_water/ui/genui_blocks/statistics_block.dart';
 import 'package:ma_water/ui/genui_blocks/summary_text_block.dart';
@@ -28,24 +29,34 @@ class GenUiRegistry {
   ///
   /// [onTapStation] is forwarded to station-aware blocks so the caller can open
   /// the station-detail screen when the user taps a station inside a block.
+  ///
+  /// [onAskStation] is forwarded to the station-list block so the caller can
+  /// continue the chat about the station the user selects (by its name).
   static Widget build(
     BlockSpec spec, {
     void Function(String stationId)? onTapStation,
+    void Function(String stationName)? onAskStation,
   }) {
-    return BlockRenderer(spec: spec, onTapStation: onTapStation);
+    return BlockRenderer(
+      spec: spec,
+      onTapStation: onTapStation,
+      onAskStation: onAskStation,
+    );
   }
 }
 
 /// The complete set of block widgets routed through this registry. Referenced
 /// here purely to document the registry's coverage and keep the imports live:
 /// [StatCardBlock], [StatisticsBlock], [LineChartBlock], [MultiLineChartBlock],
-/// [RankedListBlock], [StationMapBlock], [AlertCardBlock], [SummaryTextBlock].
+/// [RankedListBlock], [StationListBlock], [StationMapBlock], [AlertCardBlock],
+/// [SummaryTextBlock].
 const List<Type> kRegisteredBlockWidgets = <Type>[
   StatCardBlock,
   StatisticsBlock,
   LineChartBlock,
   MultiLineChartBlock,
   RankedListBlock,
+  StationListBlock,
   StationMapBlock,
   AlertCardBlock,
   SummaryTextBlock,

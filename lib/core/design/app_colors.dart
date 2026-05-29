@@ -53,6 +53,22 @@ class AppColors {
     end: Alignment.bottomRight,
   );
 
+  /// Google-Gemini-style rainbow palette: blue -> purple -> red -> amber ->
+  /// green. Used by GradientText / GradientIcon for the full-spectrum accent.
+  static const List<Color> rainbowColors = [
+    Color(0xFF4285F4),
+    Color(0xFF9B72F2),
+    Color(0xFFD96570),
+    Color(0xFFF2A60C),
+    Color(0xFF34A853),
+  ]; // Google blue->purple->red->amber->green
+
+  static const LinearGradient rainbowGradient = LinearGradient(
+    colors: rainbowColors,
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
   /// Foreground status color for a [StationStatus].
   static Color statusColor(StationStatus s) {
     switch (s) {

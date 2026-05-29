@@ -162,7 +162,11 @@ class _SparkleAvatar extends StatelessWidget {
         border: Border.all(color: AppColors.line),
       ),
       alignment: Alignment.center,
-      child: const GradientIcon(icon: Icons.auto_awesome, size: AppSpacing.md),
+      child: const GradientIcon(
+        icon: Icons.auto_awesome,
+        size: AppSpacing.md,
+        gradient: AppColors.rainbowGradient,
+      ),
     );
   }
 }

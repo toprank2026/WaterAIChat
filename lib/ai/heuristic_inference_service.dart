@@ -58,6 +58,8 @@ class HeuristicInferenceService implements InferenceService {
         return _handleHistory(userText, history);
       case _Intent.rank:
         return _handleRank(userText);
+      case _Intent.stationList:
+        return _handleStationList();
       case _Intent.map:
         return _handleMap();
       case _Intent.alerts:
@@ -79,6 +81,14 @@ class HeuristicInferenceService implements InferenceService {
       return _Intent.greeting;
     }
     if (_containsAny(t, _alertWords)) return _Intent.alerts;
+    // Station-list questions ("كم محطة"، "قائمة/أسماء المحطات"، "وين المحطات")
+    // must precede the generic map/rank/current checks, since they share the
+    // word "محطات" and the locator "وين". An explicit map word ("خريطة") still
+    // wins, so "اعرض المحطات على الخريطة" stays a map request.
+    if (_containsAny(t, _stationListWords) &&
+        !_containsAny(t, _explicitMapWords)) {
+      return _Intent.stationList;
+    }
     if (_containsAny(t, _mapWords)) return _Intent.map;
     if (_containsAny(t, _compareWords)) return _Intent.compare;
     // Statistics must precede rank/history: phrases like "أعلى وأقل" or "متوسط"
@@ -232,6 +242,14 @@ class HeuristicInferenceService implements InferenceService {
       title: '$qualifier $limit محطات',
       items: items,
     );
+  }
+
+  /// Builds a [StationListSpec] directory of the whole fleet. Per-item status
+  /// is omitted (a live level lookup per station would be too heavy for ~100
+  /// stations); `count` is the true total. Delegates to [BlockBuilder] so the
+  /// heuristic and Gemini paths produce identical station-list cards.
+  Future<BlockSpec> _handleStationList() {
+    return BlockBuilder(_tools).stationList();
   }
 
   Future<BlockSpec> _handleMap() async {
@@ -613,6 +631,31 @@ class HeuristicInferenceService implements InferenceService {
     'وين',
   ];
 
+  /// Explicit map keywords that should keep a "المحطات" phrase as a map request
+  /// (e.g. "اعرض المحطات على الخريطة"), unlike the ambiguous locators
+  /// ("وين"/"اين") which are treated as a station-list question.
+  static const List<String> _explicitMapWords = [
+    'خريطة',
+    'خارطة',
+    'الخريطة',
+  ];
+
+  /// Words signalling a request for the station directory (count or list).
+  /// Checked before [_mapWords]/[_rankWords]/[_currentWords] because the word
+  /// "محطات" and the locator "وين" overlap with those intents.
+  static const List<String> _stationListWords = [
+    'كم محطة',
+    'كم محطه',
+    'عدد المحطات',
+    'قائمة المحطات',
+    'المحطات',
+    'اعرض المحطات',
+    'شنو المحطات',
+    'وين المحطات',
+    'اسماء المحطات',
+    'أسماء المحطات',
+  ];
+
   static const List<String> _compareWords = [
     'قارن',
     'مقارنة',
@@ -770,6 +813,7 @@ enum _Intent {
   history,
   compare,
   rank,
+  stationList,
   map,
   alerts,
   greeting,

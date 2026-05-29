@@ -192,7 +192,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     Widget? blockChild;
     final block = message.block;
     if (block != null) {
-      blockChild = GenUiRegistry.build(block, onTapStation: _openStation);
+      blockChild = GenUiRegistry.build(
+        block,
+        onTapStation: _openStation,
+        onAskStation: (name) => _send('ما مستوى المياه في $name؟'),
+      );
     }
 
     return MessageBubble(
